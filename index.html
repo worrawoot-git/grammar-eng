@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple English Grammar Checker</title>
+    <title>Smart English Grammar & Spell Checker</title>
     <style>
         :root {
             --primary-color: #2563eb;
@@ -12,6 +12,8 @@
             --error-color: #dc2626;
             --warning-color: #d97706;
             --text-color: #1f2937;
+            --success-color: #059669;
+            --reset-color: #6b7280;
         }
 
         body {
@@ -34,7 +36,10 @@
 
         h1, h2 {
             color: var(--primary-color);
+            margin-top: 0;
         }
+
+        p { color: #4b5563; }
 
         .editor-section {
             display: flex;
@@ -52,18 +57,24 @@
 
         textarea {
             width: 100%;
-            height: 300px;
+            height: 350px;
             padding: 15px;
             border: 1px solid #d1d5db;
             border-radius: 8px;
             resize: vertical;
             font-family: 'Courier New', Courier, monospace;
             font-size: 16px;
+            box-sizing: border-box; /* Fix padding width issue */
+        }
+
+        textarea:focus {
+            outline: 2px solid var(--primary-color);
+            border-color: transparent;
         }
 
         .output-div {
             width: 100%;
-            height: 300px;
+            height: 350px;
             padding: 15px;
             border: 1px solid #d1d5db;
             border-radius: 8px;
@@ -72,6 +83,7 @@
             white-space: pre-wrap;
             font-family: 'Courier New', Courier, monospace;
             font-size: 16px;
+            box-sizing: border-box;
         }
 
         /* Styles for errors */
@@ -80,49 +92,89 @@
             background-color: rgba(220, 38, 38, 0.1);
             cursor: pointer;
             position: relative;
+            padding: 0 2px;
+            border-radius: 2px;
         }
 
+        .highlight-error:hover {
+            background-color: rgba(220, 38, 38, 0.2);
+        }
+
+        /* Tooltip styling */
         .highlight-error:hover::after {
             content: attr(data-suggestion);
             position: absolute;
-            bottom: 120%;
+            bottom: 130%;
             left: 50%;
             transform: translateX(-50%);
-            background: #333;
+            background: #1f2937;
             color: #fff;
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 12px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
             white-space: nowrap;
-            z-index: 10;
+            z-index: 100;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        /* Tooltip Arrow */
+        .highlight-error:hover::before {
+            content: '';
+            position: absolute;
+            bottom: 110%;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 6px;
+            border-style: solid;
+            border-color: #1f2937 transparent transparent transparent;
+            z-index: 100;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
         }
 
         .btn {
-            background-color: var(--primary-color);
             color: white;
             border: none;
-            padding: 10px 20px;
+            padding: 12px 24px;
             border-radius: 6px;
             cursor: pointer;
             font-size: 16px;
-            transition: background 0.2s;
-            margin-right: 10px;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .btn:hover {
-            background-color: #1d4ed8;
-        }
+        .btn-check { background-color: var(--primary-color); }
+        .btn-check:hover { background-color: #1d4ed8; }
 
-        .btn-print {
-            background-color: #059669;
-        }
+        .btn-print { background-color: var(--success-color); }
+        .btn-print:hover { background-color: #047857; }
+
+        .btn-reset { background-color: var(--reset-color); }
+        .btn-reset:hover { background-color: #4b5563; }
 
         .summary-section {
             margin-top: 30px;
-            padding: 20px;
+            padding: 25px;
             background-color: #eff6ff;
             border-radius: 8px;
             border-left: 5px solid var(--primary-color);
+        }
+        
+        .summary-list li {
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #dbeafe;
+        }
+        .summary-list li:last-child {
+            border-bottom: none;
         }
 
         /* Print Specific Styles */
@@ -130,38 +182,59 @@
             body {
                 background-color: white;
                 padding: 0;
+                font-size: 12pt;
             }
             .container {
                 box-shadow: none;
                 width: 100%;
                 max-width: 100%;
+                padding: 0;
             }
-            .input-box, .btn, .controls {
+            .input-box, .btn, .controls, header p {
                 display: none !important;
             }
             .output-box {
                 flex: 100%;
                 border: none;
+                margin-top: 0;
             }
             .output-div {
                 border: none;
                 height: auto;
                 background-color: white;
+                padding: 0;
+                overflow: visible;
+                font-size: 14pt;
+                line-height: 2;
             }
             .highlight-error {
                 text-decoration: none;
                 font-weight: bold;
                 color: var(--error-color);
+                background: none;
             }
-            /* Show suggestions in print next to the word */
+            /* Show suggestions in print explicitly */
             .highlight-error::after {
-                content: " [" attr(data-suggestion) "] ";
+                content: " [" attr(data-clean-suggestion) "] ";
                 position: static;
                 background: none;
                 color: var(--text-color);
-                font-size: inherit;
+                font-size: 0.9em;
                 font-weight: normal;
+                border: 1px solid #ccc;
+                padding: 2px 5px;
+                border-radius: 4px;
+                margin-left: 5px;
+                box-shadow: none;
                 transform: none;
+                display: inline;
+            }
+            .highlight-error:hover::before { display: none; }
+            
+            .summary-section {
+                border: 1px solid #ccc;
+                background-color: white;
+                page-break-inside: avoid;
             }
         }
     </style>
@@ -170,20 +243,21 @@
 
     <div class="container">
         <header>
-            <h1>📝 English Grammar Checker</h1>
-            <p>วางข้อความภาษาอังกฤษของคุณด้านล่างเพื่อตรวจสอบคำผิดและไวยากรณ์</p>
+            <h1>📝 English Grammar & Spell Checker</h1>
+            <p>วางข้อความภาษาอังกฤษเพื่อตรวจสอบไวยากรณ์และการสะกดคำ พร้อมพิมพ์รายงานสรุป</p>
         </header>
 
         <div class="controls">
-            <button class="btn" onclick="checkGrammar()">🔍 ตรวจสอบ (Check)</button>
-            <button class="btn btn-print" onclick="window.print()">🖨️ พิมพ์รายงาน (Print PDF)</button>
+            <button class="btn btn-check" onclick="checkGrammar()">🔍 ตรวจสอบ (Check)</button>
+            <button class="btn btn-print" onclick="window.print()">🖨️ พิมพ์รายงาน (PDF)</button>
+            <button class="btn btn-reset" onclick="resetPage()">🔄 รีเซ็ต (Reset)</button>
         </div>
-        <br>
 
         <div class="editor-section">
             <div class="input-box">
                 <label><strong>ต้นฉบับ (Input):</strong></label>
-                <textarea id="inputText" placeholder="Type or paste your English text here... (e.g. He have a car. I want to went home.)"></textarea>
+                <textarea id="inputText" spellcheck="true" lang="en" placeholder="Type or paste your English text here... 
+Example: He have a car. I definately want to went home. Thier house is big."></textarea>
             </div>
             
             <div class="output-box">
@@ -193,57 +267,43 @@
         </div>
 
         <div id="summarySection" class="summary-section" style="display: none;">
-            <h2>📊 สรุปผลการตรวจสอบ (Summary)</h2>
-            <p><strong>จำนวนข้อผิดพลาดที่พบ:</strong> <span id="errorCount">0</span> จุด</p>
-            <ul id="suggestionList"></ul>
-            <p><em>คำแนะนำ: กรุณาตรวจสอบบริบทของประโยคอีกครั้ง เนื่องจากระบบเป็นการตรวจสอบเบื้องต้น</em></p>
+            <h2>📊 สรุปผลการตรวจสอบ (Analysis Report)</h2>
+            <p><strong>จำนวนข้อผิดพลาดที่พบ:</strong> <span id="errorCount" style="color: var(--error-color); font-weight: bold;">0</span> จุด</p>
+            <hr>
+            <ul id="suggestionList" class="summary-list"></ul>
+            <p style="font-size: 0.9em; margin-top: 20px; color: #666;">
+                <em>หมายเหตุ: ระบบใช้กฎเกณฑ์เบื้องต้น (Rule-based) ร่วมกับฐานข้อมูลคำผิดที่พบบ่อย อาจไม่ครอบคลุมคำศัพท์เฉพาะทางทั้งหมด</em>
+            </p>
         </div>
     </div>
 
     <script>
-        // ฐานข้อมูลกฎ Grammar เบื้องต้น (สามารถเพิ่มกฎได้ที่นี่)
-        // หมายเหตุ: การตรวจ Grammar ขั้นสูงต้องใช้ API (เช่น LanguageTool) แต่ในที่นี้เราใช้ Regex เพื่อให้โค้ดทำงานได้ทันทีโดยไม่ต้องต่อเน็ต
-        const grammarRules = [
-            {
-                pattern: /\b(he|she|it)\s+have\b/gi,
-                suggestion: "has",
-                reason: "Subject-Verb Agreement: ประธานเอกพจน์ต้องใช้ has"
-            },
-            {
-                pattern: /\b(I)\s+has\b/gi,
-                suggestion: "have",
-                reason: "Subject-Verb Agreement: I ต้องใช้ have"
-            },
-            {
-                pattern: /\b(dont)\b/gi,
-                suggestion: "don't",
-                reason: "Punctuation: ควรมี apostrophe"
-            },
-            {
-                pattern: /\b(cant)\b/gi,
-                suggestion: "can't",
-                reason: "Punctuation: ควรมี apostrophe"
-            },
-            {
-                pattern: /\b(teh)\b/gi,
-                suggestion: "the",
-                reason: "Spelling: สะกดผิด"
-            },
-            {
-                pattern: /\b(your)\s+(welcome)\b/gi,
-                suggestion: "you're welcome",
-                reason: "Grammar: ต้องใช้ You are (You're)"
-            },
-            {
-                pattern: /\b(to)\s+went\b/gi,
-                suggestion: "to go",
-                reason: "Infinitive: หลัง to ต้องเป็น verb ช่อง 1"
-            },
-            {
-                pattern: /\s{2,}/g,
-                suggestion: " ",
-                reason: "Format: เว้นวรรคซ้ำเกินความจำเป็น"
-            }
+        // รวมกฎ Grammar และ Spelling Common Mistakes
+        const rules = [
+            // --- Grammar Rules ---
+            { pattern: /\b(he|she|it)\s+have\b/gi, suggestion: "has", reason: "Grammar: ประธานเอกพจน์ใช้ has" },
+            { pattern: /\b(I)\s+has\b/gi, suggestion: "have", reason: "Grammar: I ใช้ have" },
+            { pattern: /\b(dont)\b/gi, suggestion: "don't", reason: "Punctuation: ขาด apostrophe" },
+            { pattern: /\b(cant)\b/gi, suggestion: "can't", reason: "Punctuation: ขาด apostrophe" },
+            { pattern: /\b(im)\b/gi, suggestion: "I'm", reason: "Punctuation: ขาด apostrophe" },
+            { pattern: /\b(your)\s+(welcome)\b/gi, suggestion: "you're welcome", reason: "Grammar: ต้องใช้ You are (You're)" },
+            { pattern: /\b(to)\s+went\b/gi, suggestion: "to go", reason: "Grammar: หลัง to ตามด้วย Verb ช่อง 1" },
+            { pattern: /\b(can)\s+to\b/gi, suggestion: "can", reason: "Grammar: Modal verb ไม่ตามด้วย to" },
+            
+            // --- Common Spelling Mistakes (Spelling) ---
+            { pattern: /\b(teh)\b/gi, suggestion: "the", reason: "Spelling: คำที่ถูกต้องคือ the" },
+            { pattern: /\b(recieve)\b/gi, suggestion: "receive", reason: "Spelling: i ก่อน e (except after c)" },
+            { pattern: /\b(definately)\b/gi, suggestion: "definitely", reason: "Spelling: สะกดผิด" },
+            { pattern: /\b(seperate)\b/gi, suggestion: "separate", reason: "Spelling: สะกดผิด (ใช้ a ไม่ใช่ e)" },
+            { pattern: /\b(occured)\b/gi, suggestion: "occurred", reason: "Spelling: ต้องมี r สองตัว" },
+            { pattern: /\b(alot)\b/gi, suggestion: "a lot", reason: "Spelling: ต้องเว้นวรรค" },
+            { pattern: /\b(thier)\b/gi, suggestion: "their", reason: "Spelling: สะกดผิด" },
+            { pattern: /\b(untill)\b/gi, suggestion: "until", reason: "Spelling: until มี l ตัวเดียว" },
+            { pattern: /\b(truely)\b/gi, suggestion: "truly", reason: "Spelling: ตัด e ออก" },
+            { pattern: /\b(wether)\b/gi, suggestion: "whether", reason: "Spelling: อาจหมายถึง weather หรือ whether" },
+            
+            // --- Formatting ---
+            { pattern: /\s{2,}/g, suggestion: " ", reason: "Format: เว้นวรรคเกินจำเป็น" }
         ];
 
         function checkGrammar() {
@@ -258,18 +318,13 @@
                 return;
             }
 
-            let processedText = inputText;
-            let errorsFound = [];
-            
-            // 1. ทำการสแกนหาข้อผิดพลาด
-            // เราจะสร้าง Array ของตำแหน่งที่ผิดพลาดเพื่อนำไป Highlight
             let matches = [];
 
-            grammarRules.forEach(rule => {
+            // ตรวจหาคำผิดตามกฎที่ตั้งไว้
+            rules.forEach(rule => {
                 let match;
-                // รีเซ็ต lastIndex สำหรับ regex ที่มี global flag
+                // สร้าง Regex ใหม่ทุกครั้งเพื่อ reset lastIndex
                 const regex = new RegExp(rule.pattern);
-                
                 while ((match = regex.exec(inputText)) !== null) {
                     matches.push({
                         start: match.index,
@@ -281,29 +336,40 @@
                 }
             });
 
-            // 2. เรียงลำดับ matches ตามตำแหน่ง (เพื่อไม่ให้แทรก tag ผิดที่)
+            // เรียงลำดับตำแหน่งที่ผิดจากน้อยไปมาก
             matches.sort((a, b) => a.start - b.start);
 
-            // 3. สร้าง HTML ใหม่ที่มีการ Highlight
+            // สร้าง HTML Output
             let finalHtml = "";
             let lastIndex = 0;
             let totalErrors = 0;
-
-            // ล้างรายการสรุปเก่า
-            suggestionList.innerHTML = "";
+            
+            suggestionList.innerHTML = ""; // ล้างรายการเก่า
 
             matches.forEach((m) => {
-                // เติมข้อความก่อนหน้าจุดผิด
-                finalHtml += inputText.substring(lastIndex, m.start);
-                
-                // เติมจุดที่ผิดพร้อม Tag
-                // หลีกเลี่ยงการทับซ้อน (Overlap) อย่างง่าย
+                // ป้องกันการทับซ้อน (Overlap protection)
                 if (m.start >= lastIndex) {
-                    finalHtml += `<span class="highlight-error" title="${m.reason} -> แนะนำ: ${m.suggestion}" data-suggestion="แก้เป็น: ${m.suggestion}">${m.text}</span>`;
+                    // ข้อความปกติก่อนถึงจุดผิด
+                    finalHtml += escapeHtml(inputText.substring(lastIndex, m.start));
                     
-                    // เพิ่มลงในสรุป
+                    // ข้อความจุดที่ผิด (Highlight)
+                    // data-clean-suggestion ใช้สำหรับโชว์ตอน Print
+                    finalHtml += `<span class="highlight-error" 
+                        title="${m.reason}" 
+                        data-suggestion="💡 ${m.suggestion}" 
+                        data-clean-suggestion="แก้เป็น: ${m.suggestion}">
+                        ${escapeHtml(m.text)}
+                    </span>`;
+                    
+                    // เพิ่มรายการในสรุป
                     let li = document.createElement('li');
-                    li.innerHTML = `<strong>"${m.text}"</strong> อาจผิดพลาด: ${m.reason} <br> <span style="color:green">➔ แนะนำให้แก้เป็น: <strong>${m.suggestion}</strong></span>`;
+                    li.innerHTML = `
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span>คำที่พบ: <strong style="color:var(--error-color); text-decoration:line-through;">${escapeHtml(m.text)}</strong></span>
+                            <span style="color:var(--success-color); font-weight:bold;">➔ ${m.suggestion}</span>
+                        </div>
+                        <div style="font-size:0.9em; color:#666; margin-top:4px;">${m.reason}</div>
+                    `;
                     suggestionList.appendChild(li);
                     
                     totalErrors++;
@@ -311,13 +377,39 @@
                 }
             });
 
-            // เติมข้อความส่วนที่เหลือ
-            finalHtml += inputText.substring(lastIndex);
+            // ข้อความส่วนที่เหลือ
+            finalHtml += escapeHtml(inputText.substring(lastIndex));
 
-            // 4. แสดงผล
+            // แสดงผล
             resultDiv.innerHTML = finalHtml;
             errorCountSpan.innerText = totalErrors;
             summarySection.style.display = "block";
+            
+            // Scroll ไปที่ผลลัพธ์บนมือถือ
+            if(window.innerWidth < 768) {
+                resultDiv.scrollIntoView({behavior: "smooth"});
+            }
+        }
+
+        function resetPage() {
+            if(confirm("ต้องการรีเซ็ตข้อมูลทั้งหมดใช่หรือไม่?")) {
+                document.getElementById('inputText').value = '';
+                document.getElementById('resultOutput').innerHTML = '';
+                document.getElementById('summarySection').style.display = 'none';
+                document.getElementById('errorCount').innerText = '0';
+                document.getElementById('suggestionList').innerHTML = '';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        // ฟังก์ชันป้องกัน XSS อย่างง่าย
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
         }
     </script>
 </body>

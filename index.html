@@ -3,225 +3,322 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Safe Grammar Checker (No Freeze)</title>
+    <title>English Grammar Checker</title>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&family=Courier+Prime&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-color: #f8fafc;
             --primary: #2563eb;
-            --danger: #dc2626;
-            --success: #16a34a;
-            --warning: #ea580c;
+            --white: #ffffff;
+            /* Colors for errors */
+            --col-spell: #dc2626;   /* Red */
+            --bg-spell: #fef2f2;
+            --col-gram: #16a34a;    /* Green */
+            --bg-gram: #f0fdf4;
+            --col-art: #ea580c;     /* Orange */
+            --bg-art: #fff7ed;
+            --col-punct: #2563eb;   /* Blue */
+            --bg-punct: #eff6ff;
         }
 
-        body { font-family: 'Sarabun', sans-serif; background: var(--bg-color); padding: 20px; color: #333; }
-        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: var(--primary); }
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: var(--bg-color);
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: var(--white);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        h1 { text-align: center; color: #1e293b; margin-top: 0; }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            flex-wrap: wrap;
+        }
+        .tag { padding: 4px 10px; border-radius: 20px; font-weight: bold; font-size: 0.8rem; }
+        .tag-red { background: var(--bg-spell); color: var(--col-spell); border: 1px solid var(--col-spell); }
+        .tag-green { background: var(--bg-gram); color: var(--col-gram); border: 1px solid var(--col-gram); }
+        .tag-orange { background: var(--bg-art); color: var(--col-art); border: 1px solid var(--col-art); }
+        .tag-blue { background: var(--bg-punct); color: var(--col-punct); border: 1px solid var(--col-punct); }
+
+        .controls {
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            margin: 0 5px;
+            color: white;
+        }
+        .btn-check { background-color: var(--primary); }
+        .btn-check:hover { background-color: #1d4ed8; }
+        .btn-print { background-color: #475569; }
+        .btn-print:hover { background-color: #334155; }
+        .btn-reset { background-color: #ef4444; } /* Reset Red */
+
+        .editor-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        textarea, .output-box {
+            width: 100%;
+            height: 400px;
+            padding: 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-family: 'Courier Prime', monospace;
+            font-size: 16px;
+            resize: vertical;
+            box-sizing: border-box;
+            line-height: 1.8;
+        }
+
+        textarea:focus { outline: 2px solid var(--primary); border-color: transparent; }
         
-        .controls { text-align: center; margin: 20px 0; }
-        button { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: bold; margin: 5px; }
-        .btn-check { background: var(--primary); }
-        .btn-check:hover { background: #1d4ed8; }
-        .btn-reset { background: #64748b; }
-        .btn-print { background: var(--success); }
-
-        .editor-box { display: flex; gap: 20px; flex-wrap: wrap; }
-        .box { flex: 1; min-width: 300px; }
-        textarea, .result-area { 
-            width: 100%; height: 350px; padding: 15px; 
-            border: 2px solid #e2e8f0; border-radius: 8px; 
-            font-family: 'Courier Prime', monospace; font-size: 16px; 
-            resize: vertical; box-sizing: border-box; line-height: 1.6;
+        .output-box {
+            background-color: white;
+            overflow-y: auto;
+            white-space: pre-wrap; /* Keep formatting */
         }
-        .result-area { background: white; overflow-y: auto; white-space: pre-wrap; }
 
         /* Highlight Styles */
-        .err { 
-            border-bottom: 2px solid; 
-            cursor: pointer; 
-            position: relative; 
-            padding: 2px 0;
+        .err {
+            border-bottom: 3px solid;
+            cursor: pointer;
+            position: relative;
         }
-        .err-red { border-color: var(--danger); background: #fef2f2; color: var(--danger); }
-        .err-green { border-color: var(--success); background: #f0fdf4; color: var(--success); }
-        .err-orange { border-color: var(--warning); background: #fff7ed; color: var(--warning); }
+        .err-spell { border-color: var(--col-spell); background: var(--bg-spell); color: var(--col-spell); }
+        .err-gram { border-color: var(--col-gram); background: var(--bg-gram); color: var(--col-gram); }
+        .err-art { border-color: var(--col-art); background: var(--bg-art); color: var(--col-art); }
+        .err-punct { border-color: var(--col-punct); background: var(--bg-punct); color: var(--col-punct); }
 
         /* Tooltip */
         .err:hover::after {
-            content: attr(data-tip);
+            content: attr(data-fix);
             position: absolute;
-            bottom: 130%; left: 50%; transform: translateX(-50%);
-            background: #1e293b; color: white; padding: 5px 10px;
-            border-radius: 4px; font-size: 14px; white-space: nowrap; z-index: 10;
-            pointer-events: none;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            white-space: nowrap;
+            z-index: 100;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
         }
 
-        /* Loading Spinner */
-        #loading { display: none; color: var(--primary); font-weight: bold; margin-top: 10px; }
-
         @media print {
-            .controls, textarea, h1 { display: none; }
-            .container { box-shadow: none; border: none; padding: 0; width: 100%; }
-            .result-area { border: none; height: auto; font-size: 14pt; }
-            .err { border: none; text-decoration: underline; color: black !important; background: none !important; }
+            .input-section, .controls, .legend, h1 { display: none; }
+            .container { box-shadow: none; border: none; padding: 0; margin: 0; width: 100%; max-width: 100%; }
+            .editor-grid { display: block; }
+            .output-box { border: none; height: auto; overflow: visible; font-size: 12pt; padding: 0; color: black; }
+            
+            /* Print friendly highlights */
+            .err { border: none; text-decoration: underline; color: black !important; background: none !important; font-weight: bold; }
             .err::after {
-                content: " [" attr(data-clean) "] ";
-                position: static; font-size: 0.8em; color: #555; transform: none; display: inline; border: 1px solid #ccc; padding: 0 4px;
+                content: " [" attr(data-clean) "] "; /* Show correction in text */
+                position: static;
+                font-size: 0.8em;
+                font-weight: normal;
+                color: #555;
+                background: none;
+                border: 1px solid #ccc;
+                padding: 0 4px;
+                border-radius: 4px;
+                margin-left: 5px;
+                transform: none;
+                display: inline;
+                box-shadow: none;
             }
+        }
+
+        @media (max-width: 768px) {
+            .editor-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🛡️ Stable Grammar Checker</h1>
-    
-    <div class="controls">
-        <button class="btn-reset" onclick="loadSample()">Load Sample</button>
-        <button class="btn-check" onclick="startCheck()">🔍 Check Now</button>
-        <button class="btn-print" onclick="window.print()">🖨️ Print</button>
-        <div id="loading">Processing...</div>
+    <h1>📝 Grammar Checker</h1>
+
+    <div class="legend">
+        <span class="tag tag-red">Spelling (คำผิด)</span>
+        <span class="tag tag-orange">Articles (a/an/the)</span>
+        <span class="tag tag-green">Grammar & Tense</span>
+        <span class="tag tag-blue">Punctuation</span>
     </div>
 
-    <div class="editor-box">
-        <div class="box">
-            <label><strong>Input:</strong></label>
-            <textarea id="inputText" placeholder="Paste text here..."></textarea>
+    <div class="controls">
+        <button class="btn btn-check" onclick="runCheck()">🔍 Check (ตรวจสอบ)</button>
+        <button class="btn btn-print" onclick="window.print()">🖨️ Print PDF</button>
+        <button class="btn btn-reset" onclick="resetAll()">🗑️ Reset</button>
+    </div>
+
+    <div class="editor-grid">
+        <div class="input-section">
+            <label><strong>Input Text:</strong></label>
+            <textarea id="inputText" placeholder="Type or paste English text here..."></textarea>
         </div>
-        <div class="box">
+        <div>
             <label><strong>Result:</strong></label>
-            <div id="resultText" class="result-area"></div>
+            <div id="outputText" class="output-box"></div>
         </div>
     </div>
 </div>
 
 <script>
-    // --- 1. กฎ (Rules) ---
-    // ใช้ string pattern แทน RegExp object เพื่อลดความซับซ้อนและป้องกัน error ตอน clone
+    // ---------------------------------------------------------
+    // 1. RULES DATABASE (ใช้ RegExp Object โดยตรงเพื่อป้องกัน Error)
+    // ---------------------------------------------------------
     const rules = [
-        // SPELLING (Red)
-        { id: 'spell', pattern: "\\b(teh)\\b", flags: "gi", suggest: "the", type: "red" },
-        { id: 'spell', pattern: "\\b(recieve)\\b", flags: "gi", suggest: "receive", type: "red" },
-        { id: 'spell', pattern: "\\b(tommorow)\\b", flags: "gi", suggest: "tomorrow", type: "red" },
-        { id: 'spell', pattern: "\\b(definately)\\b", flags: "gi", suggest: "definitely", type: "red" },
-        { id: 'spell', pattern: "\\b(untill)\\b", flags: "gi", suggest: "until", type: "red" },
-        
-        // ARTICLES (Orange)
-        { id: 'art', pattern: "\\b(a)\\s+(apple|elephant|ice|orange|umbrella|hour)\\b", flags: "gi", suggest: "an $2", type: "orange" },
-        { id: 'art', pattern: "\\b(an)\\s+(car|book|house|university|year)\\b", flags: "gi", suggest: "a $2", type: "orange" },
+        // --- SPELLING (Red) ---
+        { pattern: /\b(teh)\b/gi, fix: "the", type: "spell" },
+        { pattern: /\b(recieve)\b/gi, fix: "receive", type: "spell" },
+        { pattern: /\b(tommorow)\b/gi, fix: "tomorrow", type: "spell" },
+        { pattern: /\b(definately)\b/gi, fix: "definitely", type: "spell" },
+        { pattern: /\b(becuase)\b/gi, fix: "because", type: "spell" },
+        { pattern: /\b(untill)\b/gi, fix: "until", type: "spell" },
+        { pattern: /\b(wanna)\b/gi, fix: "want to", type: "spell" },
 
-        // GRAMMAR (Green)
-        { id: 'gram', pattern: "\\b(he|she|it)\\s+(have|don't)\\b", flags: "gi", suggest: "has/doesn't", type: "green" },
-        { id: 'gram', pattern: "\\b(I)\\s+(has)\\b", flags: "gi", suggest: "have", type: "green" },
-        { id: 'gram', pattern: "\\b(did|didn't)\\s+(went|saw|ate|came)\\b", flags: "gi", suggest: "did + verb1", type: "green" },
-        { id: 'gram', pattern: "\\b(to)\\s+(went|goes|gone)\\b", flags: "gi", suggest: "to go", type: "green" },
-        { id: 'gram', pattern: "\\b(will|can)\\s+(to)\\b", flags: "gi", suggest: "remove 'to'", type: "green" },
+        // --- ARTICLES (Orange) ---
+        { pattern: /\b(a)\s+(apple|elephant|ice|orange|umbrella|hour|idea)\b/gi, fix: "an $2", type: "art" },
+        { pattern: /\b(an)\s+(car|book|house|university|year|cat|dog)\b/gi, fix: "a $2", type: "art" },
 
-        // PUNCTUATION (Blue/Red) - ใช้ระวัง Infinite Loop
-        { id: 'punct', pattern: "\\s+([.,?!])", flags: "g", suggest: "$1 (No space before)", type: "red" },
-        { id: 'punct', pattern: ",([^\\s])", flags: "g", suggest: ", $1", type: "red" }
+        // --- GRAMMAR & TENSE (Green) ---
+        { pattern: /\b(he|she|it|John|Mary)\s+(have)\b/gi, fix: "has", type: "gram" },
+        { pattern: /\b(I)\s+(has)\b/gi, fix: "have", type: "gram" },
+        { pattern: /\b(did|didn't)\s+(went|saw|ate|came|took)\b/gi, fix: "did + verb1", type: "gram" },
+        { pattern: /\b(will|can|could|should)\s+(to)\b/gi, fix: "remove 'to'", type: "gram" },
+        { pattern: /\b(to)\s+(went|goes|gone)\b/gi, fix: "to go", type: "gram" },
+        { pattern: /\b(your)\s+(welcome)\b/gi, fix: "you're welcome", type: "gram" },
+
+        // --- PUNCTUATION (Blue) ---
+        { pattern: /\s+([.,?!])/g, fix: "$1", type: "punct" }, // Space before dot
+        { pattern: /,([^ \n])/g, fix: ", $1", type: "punct" } // No space after comma
     ];
 
-    function loadSample() {
-        document.getElementById('inputText').value = "He have a apple. I did went to school tommorow . Please recieve this,thanks.";
-    }
+    // ---------------------------------------------------------
+    // 2. MAIN FUNCTION
+    // ---------------------------------------------------------
+    function runCheck() {
+        const inputEl = document.getElementById('inputText');
+        const outputEl = document.getElementById('outputText');
+        let text = inputEl.value;
 
-    function startCheck() {
-        const input = document.getElementById('inputText').value;
-        const outputDiv = document.getElementById('resultText');
-        const loading = document.getElementById('loading');
+        if (!text.trim()) {
+            alert("Please enter some text first.");
+            return;
+        }
 
-        if (!input) return;
+        // เก็บผลลัพธ์ที่เจอทั้งหมด
+        let findings = [];
 
-        // แสดง Loading และใช้ setTimeout เพื่อให้ UI ไม่ค้างถ้าประมวลผลนาน
-        loading.style.display = 'block';
-        outputDiv.innerHTML = '';
-
-        setTimeout(() => {
-            try {
-                const html = processText(input);
-                outputDiv.innerHTML = html;
-            } catch (e) {
-                console.error(e);
-                outputDiv.innerHTML = "<span style='color:red'>Error processing text. Please try again.</span>";
-            }
-            loading.style.display = 'none';
-        }, 50);
-    }
-
-    function processText(text) {
-        // เก็บตำแหน่งที่เจอคำผิดทั้งหมด
-        let matches = [];
-
+        // วนลูปตรวจสอบทุกกฎ
         rules.forEach(rule => {
             try {
-                const regex = new RegExp(rule.pattern, rule.flags);
+                // สร้าง Regex ใหม่ทุกครั้งเพื่อ reset lastIndex
+                // rule.pattern คือ RegExp object อยู่แล้ว
+                let regex = new RegExp(rule.pattern); 
                 let match;
-                
-                // SAFETY LOOP: ป้องกัน Infinite Loop
-                let loopLimit = 1000; 
-                let loopCount = 0;
 
                 while ((match = regex.exec(text)) !== null) {
-                    loopCount++;
-                    if (loopCount > loopLimit) break; // Break ถ้าวนเยอะผิดปกติ
-
-                    // คำนวณ Suggestion (รองรับ $1, $2 replacement)
-                    let suggestion = rule.suggest;
-                    if (suggestion.includes('$')) {
-                        // ใช้ trick เล็กน้อยเพื่อ replace group
-                        suggestion = match[0].replace(regex, rule.suggest);
+                    // คำนวณคำแนะนำ (รองรับการแทนที่กลุ่มคำ เช่น $1, $2)
+                    let suggestion = rule.fix;
+                    
+                    // ตรวจสอบว่ามี Group replacement หรือไม่
+                    if (suggestion.includes("$")) {
+                         // ใช้ฟังชัน replace ของ string เพื่อแทนค่า $1, $2 ให้ถูกต้องตามบริบท
+                         suggestion = match[0].replace(regex, rule.fix);
                     }
 
-                    matches.push({
+                    findings.push({
                         start: match.index,
                         end: match.index + match[0].length,
-                        text: match[0],
+                        word: match[0],
                         suggestion: suggestion,
                         type: rule.type
                     });
 
-                    // SAFETY: ถ้าเจอ Match ที่เป็นค่าว่าง (Zero-length) ต้องขยับ index
+                    // ป้องกัน Infinite Loop กรณี Regex จับค่าว่าง (Zero-width match)
                     if (match.index === regex.lastIndex) {
                         regex.lastIndex++;
                     }
                 }
-            } catch (err) {
-                console.warn("Rule Error:", rule, err);
+            } catch (e) {
+                console.error("Rule Error:", e);
             }
         });
 
         // เรียงลำดับตำแหน่งจากน้อยไปมาก
-        matches.sort((a, b) => a.start - b.start);
+        findings.sort((a, b) => a.start - b.start);
 
-        // สร้าง HTML โดยตัดคำมาแปะ (ป้องกัน Overlap)
-        let finalHtml = "";
-        let lastCursor = 0;
+        // สร้าง HTML ใหม่
+        let htmlBuilder = "";
+        let lastIndex = 0;
 
-        matches.forEach(m => {
-            // ถ้าตำแหน่งทับซ้อนกับอันก่อนหน้า ให้ข้าม (Simple overlap protection)
-            if (m.start < lastCursor) return;
+        findings.forEach(item => {
+            // ป้องกันการทับซ้อน (Overlap Protection)
+            // ถ้าจุดเริ่มของคำนี้ น้อยกว่าจุดสิ้นสุดของคำก่อนหน้า ให้ข้ามไป
+            if (item.start < lastIndex) return;
 
-            // ข้อความก่อนหน้าคำผิด
-            finalHtml += escapeHtml(text.substring(lastCursor, m.start));
+            // 1. เติมข้อความปกติก่อนหน้าคำผิด
+            htmlBuilder += escapeHtml(text.substring(lastIndex, item.start));
 
-            // สร้าง Tag คำผิด
-            finalHtml += `<span class="err err-${m.type}" 
-                            data-tip="แก้เป็น: ${m.suggestion}"
-                            data-clean="${m.suggestion}">
-                            ${escapeHtml(m.text)}
-                          </span>`;
+            // 2. สร้าง Tag Highlight
+            // data-fix: ข้อความเด้งตอนเอาเมาส์ชี้
+            // data-clean: ข้อความที่จะโชว์ตอนปริ้น
+            htmlBuilder += `<span class="err err-${item.type}" 
+                                  data-fix="แก้เป็น: ${item.suggestion}" 
+                                  data-clean="${item.suggestion}">
+                                  ${escapeHtml(item.word)}
+                            </span>`;
 
-            lastCursor = m.end;
+            lastIndex = item.end;
         });
 
-        // ข้อความที่เหลือ
-        finalHtml += escapeHtml(text.substring(lastCursor));
+        // 3. เติมข้อความส่วนที่เหลือจนจบ
+        htmlBuilder += escapeHtml(text.substring(lastIndex));
 
-        return finalHtml;
+        // แสดงผล
+        outputEl.innerHTML = htmlBuilder;
     }
 
+    function resetAll() {
+        if(confirm("Clear all text?")) {
+            document.getElementById('inputText').value = "";
+            document.getElementById('outputText').innerHTML = "";
+        }
+    }
+
+    // Helper: ป้องกัน XSS และแสดงผลตัวอักษรพิเศษให้ถูกต้อง
     function escapeHtml(text) {
+        if (!text) return "";
         return text
             .replace(/&/g, "&amp;")
             .replace(/</g, "&lt;")

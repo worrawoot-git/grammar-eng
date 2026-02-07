@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Safe Grammar Checker (Native Loop)</title>
+    <title>Safe Grammar Checker (Fixed)</title>
     <style>
         body { font-family: sans-serif; background: #f0f2f5; padding: 20px; }
         .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
@@ -23,6 +23,7 @@
         }
         #btnCheck { background: #2563eb; }
         #btnCheck:hover { background: #1d4ed8; }
+        #btnCheck:disabled { background: #94a3b8; cursor: not-allowed; }
         #btnReset { background: #dc2626; margin-left: 10px; }
 
         #result { 
@@ -30,7 +31,6 @@
             border-radius: 8px; background: #fff; line-height: 1.8; font-size: 16px;
         }
 
-        /* Styles for errors */
         .err { 
             border-bottom: 3px solid; cursor: help; position: relative; padding-bottom: 2px;
         }
@@ -45,12 +45,14 @@
         .c-green { border-color: #22c55e; background: #f0fdf4; color: #15803d; }
         .c-orange { border-color: #f97316; background: #fff7ed; color: #c2410c; }
         .c-blue { border-color: #3b82f6; background: #eff6ff; color: #1d4ed8; }
+        
+        .status { margin: 10px 0; text-align: center; color: #666; font-size: 14px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🛡️ No-Freeze Grammar Checker</h1>
+    <h1>🛡️ Grammar Checker (แก้ปัญหาค้างแล้ว)</h1>
     
     <label><strong>Input:</strong></label>
     <textarea id="inputText" placeholder="Enter text here...">He have a car. I did went to school. Teh weather is good .</textarea>
@@ -59,124 +61,157 @@
         <button id="btnCheck" onclick="safeCheck()">🔍 CHECK NOW</button>
         <button id="btnReset" onclick="location.reload()">🔄 RESET</button>
     </div>
+    
+    <div class="status" id="status"></div>
 
     <label><strong>Result:</strong></label>
     <div id="result"></div>
 </div>
 
 <script>
-    // --- 1. กฎ (Rules) ---
-    // ใช้ string ปกติ เพื่อลดความซับซ้อน
+    // --- กฎการตรวจสอบ (ปรับปรุงแล้ว) ---
     const rules = [
-        // Spelling (Red)
-        { pattern: "teh", flags: "gi", fix: "the", type: "c-red" },
-        { pattern: "recieve", flags: "gi", fix: "receive", type: "c-red" },
-        { pattern: "tommorow", flags: "gi", fix: "tomorrow", type: "c-red" },
-        { pattern: "untill", flags: "gi", fix: "until", type: "c-red" },
+        // Spelling (Red) - ใช้ word boundary เพื่อความแม่นยำ
+        { pattern: "\\bteh\\b", flags: "gi", fix: "the", type: "c-red" },
+        { pattern: "\\brecieve\\b", flags: "gi", fix: "receive", type: "c-red" },
+        { pattern: "\\btommorow\\b", flags: "gi", fix: "tomorrow", type: "c-red" },
+        { pattern: "\\buntill\\b", flags: "gi", fix: "until", type: "c-red" },
         
-        // Grammar (Green)
-        { pattern: "\\b(he|she|it)\\s+(have)\\b", flags: "gi", fix: "has", type: "c-green" },
-        { pattern: "\\b(I)\\s+(has)\\b", flags: "gi", fix: "have", type: "c-green" },
-        { pattern: "\\b(did|didn't)\\s+(went|saw|ate|came)\\b", flags: "gi", fix: "did + verb1", type: "c-green" },
-        { pattern: "\\b(to)\\s+(went|goes)\\b", flags: "gi", fix: "to go", type: "c-green" },
+        // Grammar (Green) - จำกัด whitespace เป็น 1-3 ตัว
+        { pattern: "\\b(he|she|it) {1,3}(have)\\b", flags: "gi", fix: "has", type: "c-green" },
+        { pattern: "\\b(I) {1,3}(has)\\b", flags: "gi", fix: "have", type: "c-green" },
+        { pattern: "\\b(did|didn't) {1,3}(went|saw|ate|came)\\b", flags: "gi", fix: "base verb", type: "c-green" },
+        { pattern: "\\b(to) {1,3}(went|goes)\\b", flags: "gi", fix: "to go", type: "c-green" },
 
         // Articles (Orange)
-        { pattern: "\\b(a)\\s+(apple|elephant|ice|orange|umbrella)\\b", flags: "gi", fix: "an", type: "c-orange" },
-        { pattern: "\\b(an)\\s+(car|book|house|dog)\\b", flags: "gi", fix: "a", type: "c-orange" },
+        { pattern: "\\b(a) {1,3}(apple|elephant|ice|orange|umbrella)\\b", flags: "gi", fix: "an", type: "c-orange" },
+        { pattern: "\\b(an) {1,3}(car|book|house|dog)\\b", flags: "gi", fix: "a", type: "c-orange" },
 
-        // Punctuation (Blue) - ตัวปัญหาที่ทำให้ค้างบ่อยสุด (แก้แล้ว)
-        { pattern: "\\s+([.,?!])", flags: "g", fix: "$1", type: "c-blue" },
-        { pattern: ",([^ \\n])", flags: "g", fix: ", $1", type: "c-blue" }
+        // Punctuation (Blue) - แก้ไขสำคัญ: ไม่ใช้ \\s+ ที่อันตราย
+        { pattern: " {1,5}([.,?!])", flags: "g", fix: "$1", type: "c-blue" },
+        { pattern: ",([a-zA-Z])", flags: "g", fix: ", $1", type: "c-blue" }
     ];
 
     function safeCheck() {
         const inputEl = document.getElementById('inputText');
         const outputEl = document.getElementById('result');
+        const statusEl = document.getElementById('status');
         const btn = document.getElementById('btnCheck');
         
-        // 1. เปลี่ยนปุ่มเพื่อบอกว่ากำลังทำงาน
-        btn.innerText = "Checking...";
+        const text = inputEl.value.trim();
         
-        // ใช้ setTimeout เพื่อให้ UI อัปเดตก่อนเริ่มงานหนัก
+        if (!text) {
+            outputEl.innerHTML = "<i>กรุณากรอกข้อความ</i>";
+            return;
+        }
+
+        // ป้องกันการกดซ้ำ
+        btn.disabled = true;
+        btn.innerText = "⏳ กำลังตรวจสอบ...";
+        statusEl.innerText = "กำลังวิเคราะห์...";
+        outputEl.innerHTML = "";
+
+        // ให้เวลา UI อัปเดต
         setTimeout(() => {
-            const text = inputEl.value;
-            if(!text) {
-                outputEl.innerHTML = "Please enter text.";
-                btn.innerText = "🔍 CHECK NOW";
-                return;
-            }
+            try {
+                let findings = [];
+                let processedRules = 0;
 
-            let findings = [];
-
-            // 2. การค้นหาแบบปลอดภัย (ใช้ replace callback แทน while loop)
-            // วิธีนี้ Browser จัดการลูปให้ ไม่มีทาง Infinite Loop
-            rules.forEach(rule => {
-                try {
-                    const regex = new RegExp(rule.pattern, rule.flags);
-                    
-                    // ใช้ replace เพื่อ "แสกน" หาคำผิด (แต่เราไม่ได้ replace จริงๆ ในขั้นตอนนี้)
-                    text.replace(regex, (match, ...args) => {
-                        // หาตำแหน่ง (Offset) จาก argument ท้ายๆ
-                        const offset = args[args.length - 2]; 
+                // ตรวจสอบแต่ละกฎ
+                rules.forEach((rule, index) => {
+                    try {
+                        const regex = new RegExp(rule.pattern, rule.flags);
                         
-                        // คำนวณคำแนะนำ
-                        let suggestion = rule.fix;
-                        // กรณีมี $1 (เช่น Punctuation)
-                        if(suggestion.includes("$")) {
-                           // สร้าง logic ง่ายๆ สำหรับ replace string
-                           suggestion = match.replace(regex, rule.fix);
-                        }
+                        // ใช้ matchAll (ปลอดภัยกว่า while loop)
+                        const matches = [...text.matchAll(regex)];
+                        
+                        matches.forEach(match => {
+                            const offset = match.index;
+                            const matchedText = match[0];
+                            
+                            // คำนวณคำแนะนำ
+                            let suggestion = rule.fix;
+                            if (suggestion.includes("$1")) {
+                                suggestion = matchedText.replace(regex, rule.fix);
+                            }
 
-                        findings.push({
-                            start: offset,
-                            end: offset + match.length,
-                            word: match,
-                            tip: suggestion,
-                            type: rule.type
+                            findings.push({
+                                start: offset,
+                                end: offset + matchedText.length,
+                                word: matchedText,
+                                tip: suggestion,
+                                type: rule.type
+                            });
                         });
                         
-                        return match; // คืนค่าเดิม (ไม่เปลี่ยนข้อความต้นฉบับ)
-                    });
+                        processedRules++;
+                        
+                    } catch (err) {
+                        console.error(`กฎที่ ${index + 1} ผิดพลาด:`, err);
+                    }
+                });
 
-                } catch (e) {
-                    console.error("Rule Error:", e);
-                }
-            });
+                // เรียงตามตำแหน่ง และกำจัดที่ทับซ้อน
+                findings.sort((a, b) => a.start - b.start);
+                
+                // กำจัด overlap
+                const cleanFindings = [];
+                let lastEnd = 0;
+                findings.forEach(item => {
+                    if (item.start >= lastEnd) {
+                        cleanFindings.push(item);
+                        lastEnd = item.end;
+                    }
+                });
 
-            // 3. สร้าง HTML
-            findings.sort((a, b) => a.start - b.start);
+                // สร้าง HTML
+                let html = "";
+                let cursor = 0;
 
-            let html = "";
-            let cursor = 0;
+                cleanFindings.forEach(item => {
+                    // ข้อความปกติ
+                    html += escapeHtml(text.substring(cursor, item.start));
+                    
+                    // ข้อความผิด
+                    html += `<span class="err ${item.type}" data-tip="แนะนำ: ${escapeHtml(item.tip)}">
+                                ${escapeHtml(item.word)}
+                             </span>`;
+                    
+                    cursor = item.end;
+                });
 
-            findings.forEach(item => {
-                // ป้องกันการทับซ้อน (Overlap)
-                if (item.start < cursor) return;
+                // ข้อความที่เหลือ
+                html += escapeHtml(text.substring(cursor));
 
-                // ข้อความปกติ
-                html += escapeHtml(text.substring(cursor, item.start));
+                // แสดงผล
+                outputEl.innerHTML = html || escapeHtml(text);
+                statusEl.innerHTML = cleanFindings.length > 0 
+                    ? `✅ พบข้อผิดพลาด <strong>${cleanFindings.length}</strong> จุด`
+                    : `✅ ไม่พบข้อผิดพลาด`;
 
-                // ข้อความ Error
-                html += `<span class="err ${item.type}" data-tip="แก้เป็น: ${item.tip}">
-                            ${escapeHtml(item.word)}
-                         </span>`;
+            } catch (error) {
+                console.error("เกิดข้อผิดพลาด:", error);
+                outputEl.innerHTML = `<span style="color: red;">เกิดข้อผิดพลาด: ${error.message}</span>`;
+                statusEl.innerHTML = "❌ เกิดข้อผิดพลาด";
+            } finally {
+                // คืนค่าปุ่ม
+                btn.disabled = false;
+                btn.innerText = "🔍 CHECK NOW";
+            }
 
-                cursor = item.end;
-            });
-
-            // ข้อความที่เหลือ
-            html += escapeHtml(text.substring(cursor));
-
-            // 4. แสดงผล
-            outputEl.innerHTML = html;
-            btn.innerText = "🔍 CHECK NOW"; // คืนค่าปุ่ม
-
-        }, 50);
+        }, 100); // เพิ่มเวลารอเป็น 100ms
     }
 
     function escapeHtml(text) {
-        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
+
+    // ตรวจสอบอัตโนมัติเมื่อโหลดหน้า
+    window.addEventListener('load', () => {
+        safeCheck();
+    });
 </script>
 
 </body>

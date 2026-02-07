@@ -3,216 +3,180 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grammar Checker (No Freeze Version)</title>
+    <title>Safe Grammar Checker (Native Loop)</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #f4f4f9; }
-        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: #333; }
+        body { font-family: sans-serif; background: #f0f2f5; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #333; margin-top: 0; }
+
+        textarea { 
+            width: 100%; height: 150px; padding: 15px; 
+            border: 2px solid #ccc; border-radius: 8px; font-size: 16px; 
+            box-sizing: border-box; resize: vertical;
+        }
+
+        .controls { text-align: center; margin: 20px 0; }
         
-        textarea { width: 100%; height: 150px; padding: 10px; font-size: 16px; border: 2px solid #ddd; border-radius: 4px; }
-        
-        .btn-area { text-align: center; margin: 20px 0; }
         button {
-            padding: 12px 25px; font-size: 18px; font-weight: bold; cursor: pointer;
-            color: white; border: none; border-radius: 5px; transition: 0.3s;
+            padding: 12px 30px; font-size: 16px; font-weight: bold; color: white;
+            border: none; border-radius: 5px; cursor: pointer; transition: 0.2s;
         }
-        #btnCheck { background-color: #007bff; }
-        #btnCheck:hover { background-color: #0056b3; }
-        #btnReset { background-color: #dc3545; margin-left: 10px; }
+        #btnCheck { background: #2563eb; }
+        #btnCheck:hover { background: #1d4ed8; }
+        #btnReset { background: #dc2626; margin-left: 10px; }
 
-        /* Output Box */
-        #output { 
-            min-height: 150px; padding: 15px; border: 2px solid #ddd; 
-            border-radius: 4px; background: #fff; line-height: 1.6; font-size: 16px;
-            white-space: pre-wrap;
+        #result { 
+            min-height: 150px; padding: 15px; border: 2px solid #e5e7eb; 
+            border-radius: 8px; background: #fff; line-height: 1.8; font-size: 16px;
         }
 
-        /* Status Text */
-        #status { text-align: center; margin-bottom: 10px; font-weight: bold; color: #666; height: 20px; }
-
-        /* Highlight Styles */
+        /* Styles for errors */
         .err { 
-            border-bottom: 3px solid; 
-            cursor: pointer; 
-            position: relative; 
-            display: inline-block;
+            border-bottom: 3px solid; cursor: help; position: relative; padding-bottom: 2px;
         }
         .err:hover::after {
-            content: attr(data-fix);
-            position: absolute;
-            background: #333; color: #fff; padding: 5px 10px;
-            border-radius: 5px; font-size: 14px;
-            bottom: 100%; left: 50%; transform: translateX(-50%);
-            white-space: nowrap; z-index: 10;
+            content: attr(data-tip);
+            position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%);
+            background: #1f2937; color: #fff; padding: 6px 12px; border-radius: 6px;
+            font-size: 14px; white-space: nowrap; z-index: 10; pointer-events: none;
         }
 
-        /* Colors */
-        .c-red { border-color: red; background: #ffebeb; color: red; }
-        .c-green { border-color: green; background: #e8f5e9; color: green; }
-        .c-orange { border-color: orange; background: #fff3e0; color: #d84315; }
-        .c-blue { border-color: blue; background: #e3f2fd; color: #1565c0; }
-
+        .c-red { border-color: #ef4444; background: #fef2f2; color: #b91c1c; }
+        .c-green { border-color: #22c55e; background: #f0fdf4; color: #15803d; }
+        .c-orange { border-color: #f97316; background: #fff7ed; color: #c2410c; }
+        .c-blue { border-color: #3b82f6; background: #eff6ff; color: #1d4ed8; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🚀 Grammar Checker (Anti-Freeze)</h1>
+    <h1>🛡️ No-Freeze Grammar Checker</h1>
     
-    <p style="font-weight:bold">Input Text:</p>
-    <textarea id="inp">He have a car. I did went to school. Teh weather is good .</textarea>
+    <label><strong>Input:</strong></label>
+    <textarea id="inputText" placeholder="Enter text here...">He have a car. I did went to school. Teh weather is good .</textarea>
 
-    <div class="btn-area">
+    <div class="controls">
         <button id="btnCheck" onclick="safeCheck()">🔍 CHECK NOW</button>
         <button id="btnReset" onclick="location.reload()">🔄 RESET</button>
     </div>
 
-    <div id="status">Ready</div>
-
-    <p style="font-weight:bold">Result:</p>
-    <div id="output"></div>
+    <label><strong>Result:</strong></label>
+    <div id="result"></div>
 </div>
 
 <script>
-    // ----------------------------------------------------
-    // 1. RULES DATABASE
-    // ----------------------------------------------------
+    // --- 1. กฎ (Rules) ---
+    // ใช้ string ปกติ เพื่อลดความซับซ้อน
     const rules = [
-        // SPELLING (Red)
-        { regex: /teh/gi, fix: "the", type: "c-red" },
-        { regex: /recieve/gi, fix: "receive", type: "c-red" },
-        { regex: /tommorow/gi, fix: "tomorrow", type: "c-red" },
-        { regex: /untill/gi, fix: "until", type: "c-red" },
+        // Spelling (Red)
+        { pattern: "teh", flags: "gi", fix: "the", type: "c-red" },
+        { pattern: "recieve", flags: "gi", fix: "receive", type: "c-red" },
+        { pattern: "tommorow", flags: "gi", fix: "tomorrow", type: "c-red" },
+        { pattern: "untill", flags: "gi", fix: "until", type: "c-red" },
+        
+        // Grammar (Green)
+        { pattern: "\\b(he|she|it)\\s+(have)\\b", flags: "gi", fix: "has", type: "c-green" },
+        { pattern: "\\b(I)\\s+(has)\\b", flags: "gi", fix: "have", type: "c-green" },
+        { pattern: "\\b(did|didn't)\\s+(went|saw|ate|came)\\b", flags: "gi", fix: "did + verb1", type: "c-green" },
+        { pattern: "\\b(to)\\s+(went|goes)\\b", flags: "gi", fix: "to go", type: "c-green" },
 
-        // GRAMMAR (Green)
-        { regex: /\b(he|she|it|John)\s+(have)\b/gi, fix: "has", type: "c-green" },
-        { regex: /\b(I|You|We|They)\s+(has)\b/gi, fix: "have", type: "c-green" },
-        { regex: /\b(did|didn't)\s+(went|saw|ate|came)\b/gi, fix: "did + verb1", type: "c-green" },
-        { regex: /\b(to)\s+(went|goes)\b/gi, fix: "to go", type: "c-green" },
+        // Articles (Orange)
+        { pattern: "\\b(a)\\s+(apple|elephant|ice|orange|umbrella)\\b", flags: "gi", fix: "an", type: "c-orange" },
+        { pattern: "\\b(an)\\s+(car|book|house|dog)\\b", flags: "gi", fix: "a", type: "c-orange" },
 
-        // ARTICLES (Orange)
-        { regex: /\b(a)\s+(apple|elephant|ice|orange|umbrella)\b/gi, fix: "an", type: "c-orange" },
-        { regex: /\b(an)\s+(car|book|house|dog)\b/gi, fix: "a", type: "c-orange" },
-
-        // PUNCTUATION (Blue)
-        { regex: /\s+([.,?!])/g, fix: "$1", type: "c-blue" },
-        { regex: /,([^ \n])/g, fix: ", $1", type: "c-blue" }
+        // Punctuation (Blue) - ตัวปัญหาที่ทำให้ค้างบ่อยสุด (แก้แล้ว)
+        { pattern: "\\s+([.,?!])", flags: "g", fix: "$1", type: "c-blue" },
+        { pattern: ",([^ \\n])", flags: "g", fix: ", $1", type: "c-blue" }
     ];
 
-    // ----------------------------------------------------
-    // 2. MAIN FUNCTION (With Safety Brake)
-    // ----------------------------------------------------
     function safeCheck() {
+        const inputEl = document.getElementById('inputText');
+        const outputEl = document.getElementById('result');
         const btn = document.getElementById('btnCheck');
-        const status = document.getElementById('status');
-        const input = document.getElementById('inp');
-        const output = document.getElementById('output');
         
-        // 1. Update UI immediately
-        btn.innerText = "Processing...";
-        status.innerText = "Working...";
-        status.style.color = "orange";
-
-        // 2. Use setTimeout to allow UI to update before heavy lifting
+        // 1. เปลี่ยนปุ่มเพื่อบอกว่ากำลังทำงาน
+        btn.innerText = "Checking...";
+        
+        // ใช้ setTimeout เพื่อให้ UI อัปเดตก่อนเริ่มงานหนัก
         setTimeout(() => {
-            try {
-                const text = input.value;
-                if (!text.trim()) {
-                    output.innerHTML = "Please type something.";
-                    resetUI();
-                    return;
-                }
+            const text = inputEl.value;
+            if(!text) {
+                outputEl.innerHTML = "Please enter text.";
+                btn.innerText = "🔍 CHECK NOW";
+                return;
+            }
 
-                let findings = [];
+            let findings = [];
 
-                // --- LOOP RULES ---
-                for (let i = 0; i < rules.length; i++) {
-                    const rule = rules[i];
-                    const re = new RegExp(rule.regex);
-                    let match;
+            // 2. การค้นหาแบบปลอดภัย (ใช้ replace callback แทน while loop)
+            // วิธีนี้ Browser จัดการลูปให้ ไม่มีทาง Infinite Loop
+            rules.forEach(rule => {
+                try {
+                    const regex = new RegExp(rule.pattern, rule.flags);
                     
-                    // *** SAFETY BRAKE ***
-                    // ตัวนับป้องกันลูปนรก ถ้าวนเกิน 200 ครั้งต่อ 1 กฎ ให้หยุดทันที
-                    let loopCount = 0; 
-                    const MAX_LOOP = 200; 
-
-                    while ((match = re.exec(text)) !== null) {
-                        loopCount++;
-                        if (loopCount > MAX_LOOP) {
-                            console.warn("Safety Brake Activated for rule:", rule);
-                            break; // Force stop this rule
+                    // ใช้ replace เพื่อ "แสกน" หาคำผิด (แต่เราไม่ได้ replace จริงๆ ในขั้นตอนนี้)
+                    text.replace(regex, (match, ...args) => {
+                        // หาตำแหน่ง (Offset) จาก argument ท้ายๆ
+                        const offset = args[args.length - 2]; 
+                        
+                        // คำนวณคำแนะนำ
+                        let suggestion = rule.fix;
+                        // กรณีมี $1 (เช่น Punctuation)
+                        if(suggestion.includes("$")) {
+                           // สร้าง logic ง่ายๆ สำหรับ replace string
+                           suggestion = match.replace(regex, rule.fix);
                         }
 
-                        // คำนวณ Suggestion
-                        let suggestion = rule.fix;
-                        // กรณีแทนที่ง่ายๆ (ไม่มี $1) ให้โชว์คำแนะนำตรงๆ
-                        
                         findings.push({
-                            start: match.index,
-                            end: match.index + match[0].length,
-                            word: match[0],
-                            suggest: suggestion,
+                            start: offset,
+                            end: offset + match.length,
+                            word: match,
+                            tip: suggestion,
                             type: rule.type
                         });
+                        
+                        return match; // คืนค่าเดิม (ไม่เปลี่ยนข้อความต้นฉบับ)
+                    });
 
-                        // สำคัญมาก: ถ้า Match เป็นค่าว่าง (เช่นเช็คช่องว่าง) ต้องขยับ Index เสมอ
-                        if (match.index === re.lastIndex) {
-                            re.lastIndex++;
-                        }
-                    }
+                } catch (e) {
+                    console.error("Rule Error:", e);
                 }
+            });
 
-                // --- BUILD HTML ---
-                // เรียงลำดับจากหน้าไปหลัง
-                findings.sort((a, b) => a.start - b.start);
+            // 3. สร้าง HTML
+            findings.sort((a, b) => a.start - b.start);
 
-                let html = "";
-                let cursor = 0;
+            let html = "";
+            let cursor = 0;
 
-                for (let j = 0; j < findings.length; j++) {
-                    const item = findings[j];
-                    
-                    // ป้องกันคำซ้อนทับกัน (Overlap)
-                    if (item.start < cursor) continue;
+            findings.forEach(item => {
+                // ป้องกันการทับซ้อน (Overlap)
+                if (item.start < cursor) return;
 
-                    // ข้อความปกติก่อนหน้า
-                    html += escapeHtml(text.substring(cursor, item.start));
+                // ข้อความปกติ
+                html += escapeHtml(text.substring(cursor, item.start));
 
-                    // ข้อความ Highlight
-                    html += `<span class="err ${item.type}" data-fix="แก้เป็น: ${item.suggest}">
-                                ${escapeHtml(item.word)}
-                             </span>`;
+                // ข้อความ Error
+                html += `<span class="err ${item.type}" data-tip="แก้เป็น: ${item.tip}">
+                            ${escapeHtml(item.word)}
+                         </span>`;
 
-                    cursor = item.end;
-                }
+                cursor = item.end;
+            });
 
-                // ข้อความที่เหลือ
-                html += escapeHtml(text.substring(cursor));
+            // ข้อความที่เหลือ
+            html += escapeHtml(text.substring(cursor));
 
-                // แสดงผล
-                output.innerHTML = html;
-                status.innerText = "Done! (เสร็จเรียบร้อย)";
-                status.style.color = "green";
+            // 4. แสดงผล
+            outputEl.innerHTML = html;
+            btn.innerText = "🔍 CHECK NOW"; // คืนค่าปุ่ม
 
-            } catch (err) {
-                console.error(err);
-                output.innerHTML = "<span style='color:red'>Error: " + err.message + "</span>";
-                status.innerText = "System Error";
-                status.style.color = "red";
-            } finally {
-                resetUI();
-            }
-        }, 100); // Delay 100ms
-    }
-
-    function resetUI() {
-        document.getElementById('btnCheck').innerText = "🔍 CHECK NOW";
+        }, 50);
     }
 
     function escapeHtml(text) {
         return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
-
 </script>
 
 </body>

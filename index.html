@@ -3,169 +3,216 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Super Simple Grammar Checker</title>
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600&family=Courier+Prime&display=swap" rel="stylesheet">
+    <title>Grammar Checker (No Freeze Version)</title>
     <style>
-        body { font-family: 'Sarabun', sans-serif; background: #f1f5f9; padding: 20px; }
-        .container { max-width: 900px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        body { font-family: sans-serif; padding: 20px; background: #f4f4f9; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         h1 { text-align: center; color: #333; }
         
-        .btn-group { text-align: center; margin-bottom: 20px; }
-        button { 
-            padding: 12px 30px; font-size: 18px; font-weight: bold; cursor: pointer; 
-            border: none; border-radius: 5px; color: white; transition: 0.2s;
+        textarea { width: 100%; height: 150px; padding: 10px; font-size: 16px; border: 2px solid #ddd; border-radius: 4px; }
+        
+        .btn-area { text-align: center; margin: 20px 0; }
+        button {
+            padding: 12px 25px; font-size: 18px; font-weight: bold; cursor: pointer;
+            color: white; border: none; border-radius: 5px; transition: 0.3s;
         }
-        .btn-check { background-color: #2563eb; }
-        .btn-check:active { background-color: #1e40af; transform: scale(0.95); }
-        .btn-reset { background-color: #ef4444; margin-left: 10px; }
+        #btnCheck { background-color: #007bff; }
+        #btnCheck:hover { background-color: #0056b3; }
+        #btnReset { background-color: #dc3545; margin-left: 10px; }
 
-        textarea, .output { 
-            width: 100%; height: 300px; padding: 15px; 
-            border: 2px solid #ccc; border-radius: 8px; 
-            font-family: 'Courier Prime', monospace; font-size: 16px; 
-            box-sizing: border-box; resize: vertical;
+        /* Output Box */
+        #output { 
+            min-height: 150px; padding: 15px; border: 2px solid #ddd; 
+            border-radius: 4px; background: #fff; line-height: 1.6; font-size: 16px;
+            white-space: pre-wrap;
         }
-        .output { background: #fff; overflow-y: auto; white-space: pre-wrap; margin-top: 10px; }
 
-        /* Highlight Colors */
-        .err { border-bottom: 3px solid; cursor: help; position: relative; }
+        /* Status Text */
+        #status { text-align: center; margin-bottom: 10px; font-weight: bold; color: #666; height: 20px; }
+
+        /* Highlight Styles */
+        .err { 
+            border-bottom: 3px solid; 
+            cursor: pointer; 
+            position: relative; 
+            display: inline-block;
+        }
         .err:hover::after {
             content: attr(data-fix);
-            position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%);
-            background: black; color: white; padding: 5px 10px; border-radius: 5px; 
-            font-size: 14px; white-space: nowrap; z-index: 10;
+            position: absolute;
+            background: #333; color: #fff; padding: 5px 10px;
+            border-radius: 5px; font-size: 14px;
+            bottom: 100%; left: 50%; transform: translateX(-50%);
+            white-space: nowrap; z-index: 10;
         }
-        
-        .red { background: #fee2e2; color: #dc2626; border-color: #dc2626; } /* Spelling */
-        .green { background: #dcfce7; color: #16a34a; border-color: #16a34a; } /* Grammar */
-        .orange { background: #ffedd5; color: #ea580c; border-color: #ea580c; } /* Article */
-        .blue { background: #e0f2fe; color: #0284c7; border-color: #0284c7; } /* Punctuation */
+
+        /* Colors */
+        .c-red { border-color: red; background: #ffebeb; color: red; }
+        .c-green { border-color: green; background: #e8f5e9; color: green; }
+        .c-orange { border-color: orange; background: #fff3e0; color: #d84315; }
+        .c-blue { border-color: blue; background: #e3f2fd; color: #1565c0; }
+
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Grammar Checker (Direct Fix)</h1>
+    <h1>🚀 Grammar Checker (Anti-Freeze)</h1>
     
-    <div class="btn-group">
-        <button class="btn-check" id="checkBtn" onclick="startCheck()">🔍 RUN CHECK</button>
-        <button class="btn-reset" onclick="location.reload()">🗑️ RESET</button>
+    <p style="font-weight:bold">Input Text:</p>
+    <textarea id="inp">He have a car. I did went to school. Teh weather is good .</textarea>
+
+    <div class="btn-area">
+        <button id="btnCheck" onclick="safeCheck()">🔍 CHECK NOW</button>
+        <button id="btnReset" onclick="location.reload()">🔄 RESET</button>
     </div>
 
-    <div>
-        <label><strong>Input:</strong></label>
-        <textarea id="inp">He have a car. I did went home tommorow. Teh book is good .</textarea>
-    </div>
-    
-    <div>
-        <label><strong>Result:</strong></label>
-        <div id="out" class="output"></div>
-    </div>
+    <div id="status">Ready</div>
+
+    <p style="font-weight:bold">Result:</p>
+    <div id="output"></div>
 </div>
 
 <script>
-    // --- 1. ฐานข้อมูลกฎ (Rules) ---
+    // ----------------------------------------------------
+    // 1. RULES DATABASE
+    // ----------------------------------------------------
     const rules = [
         // SPELLING (Red)
-        { pat: /\b(teh)\b/gi, fix: "the", color: "red" },
-        { pat: /\b(recieve)\b/gi, fix: "receive", color: "red" },
-        { pat: /\b(tommorow)\b/gi, fix: "tomorrow", color: "red" },
-        { pat: /\b(untill)\b/gi, fix: "until", color: "red" },
-        
-        // ARTICLES (Orange)
-        { pat: /\b(a)\s+(apple|elephant|ice|orange|umbrella)\b/gi, fix: "an $2", color: "orange" },
-        { pat: /\b(an)\s+(car|book|house|year)\b/gi, fix: "a $2", color: "orange" },
+        { regex: /teh/gi, fix: "the", type: "c-red" },
+        { regex: /recieve/gi, fix: "receive", type: "c-red" },
+        { regex: /tommorow/gi, fix: "tomorrow", type: "c-red" },
+        { regex: /untill/gi, fix: "until", type: "c-red" },
 
         // GRAMMAR (Green)
-        { pat: /\b(he|she|it)\s+(have)\b/gi, fix: "has", color: "green" },
-        { pat: /\b(I)\s+(has)\b/gi, fix: "have", color: "green" },
-        { pat: /\b(did|didn't)\s+(went|saw|ate|came)\b/gi, fix: "did + verb1", color: "green" },
-        { pat: /\b(to)\s+(went|goes)\b/gi, fix: "to go", color: "green" },
+        { regex: /\b(he|she|it|John)\s+(have)\b/gi, fix: "has", type: "c-green" },
+        { regex: /\b(I|You|We|They)\s+(has)\b/gi, fix: "have", type: "c-green" },
+        { regex: /\b(did|didn't)\s+(went|saw|ate|came)\b/gi, fix: "did + verb1", type: "c-green" },
+        { regex: /\b(to)\s+(went|goes)\b/gi, fix: "to go", type: "c-green" },
+
+        // ARTICLES (Orange)
+        { regex: /\b(a)\s+(apple|elephant|ice|orange|umbrella)\b/gi, fix: "an", type: "c-orange" },
+        { regex: /\b(an)\s+(car|book|house|dog)\b/gi, fix: "a", type: "c-orange" },
 
         // PUNCTUATION (Blue)
-        { pat: /\s+([.,?!])/g, fix: "$1", color: "blue" },
-        { pat: /,([^ \n])/g, fix: ", $1", color: "blue" }
+        { regex: /\s+([.,?!])/g, fix: "$1", type: "c-blue" },
+        { regex: /,([^ \n])/g, fix: ", $1", type: "c-blue" }
     ];
 
-    // --- 2. ฟังก์ชันหลัก (ทำงานทันทีเมื่อกดปุ่ม) ---
-    function startCheck() {
-        const btn = document.getElementById('checkBtn');
+    // ----------------------------------------------------
+    // 2. MAIN FUNCTION (With Safety Brake)
+    // ----------------------------------------------------
+    function safeCheck() {
+        const btn = document.getElementById('btnCheck');
+        const status = document.getElementById('status');
         const input = document.getElementById('inp');
-        const output = document.getElementById('out');
-        let text = input.value;
-
-        // เปลี่ยนข้อความปุ่มให้รู้ว่าทำงานอยู่
-        btn.innerText = "Checking...";
+        const output = document.getElementById('output');
         
+        // 1. Update UI immediately
+        btn.innerText = "Processing...";
+        status.innerText = "Working...";
+        status.style.color = "orange";
+
+        // 2. Use setTimeout to allow UI to update before heavy lifting
         setTimeout(() => {
-            if (!text.trim()) {
-                output.innerHTML = "Please type something...";
-                btn.innerText = "🔍 RUN CHECK";
-                return;
-            }
-
-            let findings = [];
-
-            // วนลูปกฎ
-            rules.forEach(r => {
-                let match;
-                // สร้าง Regex ใหม่ทุกครั้ง
-                let regex = new RegExp(r.pat); 
-                
-                while ((match = regex.exec(text)) !== null) {
-                    let suggestion = r.fix;
-                    // แทนค่า $1, $2 ใน suggestion
-                    if (suggestion.includes("$")) {
-                        suggestion = match[0].replace(regex, r.fix);
-                    }
-
-                    findings.push({
-                        start: match.index,
-                        end: match.index + match[0].length,
-                        word: match[0],
-                        suggest: suggestion,
-                        color: r.color
-                    });
-
-                    // ป้องกันลูปไม่รู้จบ
-                    if (match.index === regex.lastIndex) regex.lastIndex++;
+            try {
+                const text = input.value;
+                if (!text.trim()) {
+                    output.innerHTML = "Please type something.";
+                    resetUI();
+                    return;
                 }
-            });
 
-            // เรียงลำดับจากหน้าไปหลัง
-            findings.sort((a, b) => a.start - b.start);
+                let findings = [];
 
-            // สร้าง HTML
-            let html = "";
-            let cursor = 0;
+                // --- LOOP RULES ---
+                for (let i = 0; i < rules.length; i++) {
+                    const rule = rules[i];
+                    const re = new RegExp(rule.regex);
+                    let match;
+                    
+                    // *** SAFETY BRAKE ***
+                    // ตัวนับป้องกันลูปนรก ถ้าวนเกิน 200 ครั้งต่อ 1 กฎ ให้หยุดทันที
+                    let loopCount = 0; 
+                    const MAX_LOOP = 200; 
 
-            findings.forEach(item => {
-                if (item.start < cursor) return; // ข้ามคำที่ซ้อนกัน
+                    while ((match = re.exec(text)) !== null) {
+                        loopCount++;
+                        if (loopCount > MAX_LOOP) {
+                            console.warn("Safety Brake Activated for rule:", rule);
+                            break; // Force stop this rule
+                        }
 
-                // ข้อความปกติ
-                html += escapeHtml(text.substring(cursor, item.start));
+                        // คำนวณ Suggestion
+                        let suggestion = rule.fix;
+                        // กรณีแทนที่ง่ายๆ (ไม่มี $1) ให้โชว์คำแนะนำตรงๆ
+                        
+                        findings.push({
+                            start: match.index,
+                            end: match.index + match[0].length,
+                            word: match[0],
+                            suggest: suggestion,
+                            type: rule.type
+                        });
 
-                // ข้อความไฮไลต์
-                html += `<span class="err ${item.color}" data-fix="แก้เป็น: ${item.suggest}">${escapeHtml(item.word)}</span>`;
+                        // สำคัญมาก: ถ้า Match เป็นค่าว่าง (เช่นเช็คช่องว่าง) ต้องขยับ Index เสมอ
+                        if (match.index === re.lastIndex) {
+                            re.lastIndex++;
+                        }
+                    }
+                }
 
-                cursor = item.end;
-            });
+                // --- BUILD HTML ---
+                // เรียงลำดับจากหน้าไปหลัง
+                findings.sort((a, b) => a.start - b.start);
 
-            // ข้อความที่เหลือ
-            html += escapeHtml(text.substring(cursor));
-            
-            // แสดงผล
-            output.innerHTML = html;
+                let html = "";
+                let cursor = 0;
 
-            // คืนค่าปุ่มเดิม
-            btn.innerText = "🔍 RUN CHECK";
-            
-        }, 200); // หน่วงเวลาเล็กน้อยเพื่อให้เห็นปุ่มกระพริบ
+                for (let j = 0; j < findings.length; j++) {
+                    const item = findings[j];
+                    
+                    // ป้องกันคำซ้อนทับกัน (Overlap)
+                    if (item.start < cursor) continue;
+
+                    // ข้อความปกติก่อนหน้า
+                    html += escapeHtml(text.substring(cursor, item.start));
+
+                    // ข้อความ Highlight
+                    html += `<span class="err ${item.type}" data-fix="แก้เป็น: ${item.suggest}">
+                                ${escapeHtml(item.word)}
+                             </span>`;
+
+                    cursor = item.end;
+                }
+
+                // ข้อความที่เหลือ
+                html += escapeHtml(text.substring(cursor));
+
+                // แสดงผล
+                output.innerHTML = html;
+                status.innerText = "Done! (เสร็จเรียบร้อย)";
+                status.style.color = "green";
+
+            } catch (err) {
+                console.error(err);
+                output.innerHTML = "<span style='color:red'>Error: " + err.message + "</span>";
+                status.innerText = "System Error";
+                status.style.color = "red";
+            } finally {
+                resetUI();
+            }
+        }, 100); // Delay 100ms
+    }
+
+    function resetUI() {
+        document.getElementById('btnCheck').innerText = "🔍 CHECK NOW";
     }
 
     function escapeHtml(text) {
         return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
+
 </script>
 
 </body>

@@ -3,282 +3,169 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ultimate Grammar Checker</title>
+    <title>Super Simple Grammar Checker</title>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600&family=Courier+Prime&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --primary: #2563eb;
-            --bg: #f8fafc;
-            --white: #ffffff;
-            
-            /* Colors */
-            --c-spell: #dc2626; --b-spell: #fef2f2; /* Red */
-            --c-gram: #16a34a;  --b-gram: #f0fdf4;  /* Green */
-            --c-art: #ea580c;   --b-art: #fff7ed;   /* Orange */
-            --c-punct: #0284c7; --b-punct: #e0f2fe; /* Blue */
+        body { font-family: 'Sarabun', sans-serif; background: #f1f5f9; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #333; }
+        
+        .btn-group { text-align: center; margin-bottom: 20px; }
+        button { 
+            padding: 12px 30px; font-size: 18px; font-weight: bold; cursor: pointer; 
+            border: none; border-radius: 5px; color: white; transition: 0.2s;
         }
+        .btn-check { background-color: #2563eb; }
+        .btn-check:active { background-color: #1e40af; transform: scale(0.95); }
+        .btn-reset { background-color: #ef4444; margin-left: 10px; }
 
-        body { font-family: 'Sarabun', sans-serif; background: var(--bg); padding: 20px; color: #333; margin: 0; }
-        
-        .container { 
-            max-width: 1000px; margin: 0 auto; background: var(--white); 
-            padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
-        }
-
-        h1 { text-align: center; margin-top: 0; color: #1e293b; }
-
-        /* Status Bar (To show it works) */
-        #statusBar {
-            text-align: center; font-size: 0.9em; margin-bottom: 10px; height: 20px; color: #64748b; font-weight: bold;
-        }
-
-        .controls { text-align: center; margin-bottom: 20px; display: flex; justify-content: center; gap: 10px; }
-        
-        button {
-            padding: 12px 24px; border: none; border-radius: 8px; 
-            font-size: 16px; font-weight: bold; cursor: pointer; color: white;
-            transition: 0.2s;
-        }
-        button:active { transform: scale(0.98); }
-        
-        #btnCheck { background: var(--primary); }
-        #btnCheck:hover { background: #1d4ed8; }
-        
-        #btnPrint { background: #475569; }
-        #btnPrint:hover { background: #334155; }
-        
-        #btnReset { background: #ef4444; }
-        #btnReset:hover { background: #dc2626; }
-
-        .editor-box { display: flex; gap: 20px; flex-wrap: wrap; }
-        .pane { flex: 1; min-width: 300px; display: flex; flex-direction: column; }
-        
-        label { font-weight: bold; margin-bottom: 5px; }
-
-        textarea, #output {
-            width: 100%; height: 350px; padding: 15px; 
-            border: 2px solid #cbd5e1; border-radius: 8px; 
+        textarea, .output { 
+            width: 100%; height: 300px; padding: 15px; 
+            border: 2px solid #ccc; border-radius: 8px; 
             font-family: 'Courier Prime', monospace; font-size: 16px; 
-            resize: none; box-sizing: border-box; line-height: 1.6;
-            background: #fff;
+            box-sizing: border-box; resize: vertical;
         }
-        
-        textarea:focus { outline: 2px solid var(--primary); border-color: transparent; }
-        #output { overflow-y: auto; white-space: pre-wrap; }
+        .output { background: #fff; overflow-y: auto; white-space: pre-wrap; margin-top: 10px; }
 
-        /* Highlight Classes */
-        .err { 
-            border-bottom: 3px solid; cursor: help; position: relative; 
-            padding-bottom: 1px;
-        }
-        .err-spell { border-color: var(--c-spell); background: var(--b-spell); color: var(--c-spell); }
-        .err-gram  { border-color: var(--c-gram); background: var(--b-gram); color: var(--c-gram); }
-        .err-art   { border-color: var(--c-art); background: var(--b-art); color: var(--c-art); }
-        .err-punct { border-color: var(--c-punct); background: var(--b-punct); color: var(--c-punct); }
-
-        /* Tooltip */
+        /* Highlight Colors */
+        .err { border-bottom: 3px solid; cursor: help; position: relative; }
         .err:hover::after {
             content: attr(data-fix);
-            position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%);
-            background: #0f172a; color: white; padding: 6px 12px;
-            border-radius: 6px; font-size: 14px; white-space: nowrap; z-index: 100;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-            pointer-events: none;
+            position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%);
+            background: black; color: white; padding: 5px 10px; border-radius: 5px; 
+            font-size: 14px; white-space: nowrap; z-index: 10;
         }
-
-        /* Print CSS */
-        @media print {
-            .controls, .input-area, h1, #statusBar { display: none; }
-            .container { box-shadow: none; padding: 0; max-width: 100%; }
-            .editor-box { display: block; }
-            #output { border: none; height: auto; padding: 0; font-size: 14pt; color: black; }
-            .err { border: none; text-decoration: underline; color: black !important; background: none !important; }
-            .err::after {
-                content: " [" attr(data-clean) "] ";
-                position: static; font-size: 0.8em; color: #555; background: none; 
-                border: 1px solid #ccc; padding: 0 4px; margin-left: 5px; transform: none; display: inline;
-            }
-        }
+        
+        .red { background: #fee2e2; color: #dc2626; border-color: #dc2626; } /* Spelling */
+        .green { background: #dcfce7; color: #16a34a; border-color: #16a34a; } /* Grammar */
+        .orange { background: #ffedd5; color: #ea580c; border-color: #ea580c; } /* Article */
+        .blue { background: #e0f2fe; color: #0284c7; border-color: #0284c7; } /* Punctuation */
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>✅ Grammar Checker (Stable)</h1>
+    <h1>Grammar Checker (Direct Fix)</h1>
     
-    <div id="statusBar">Ready</div>
-
-    <div class="controls">
-        <button id="btnCheck">🔍 Check</button>
-        <button id="btnPrint">🖨️ Print PDF</button>
-        <button id="btnReset">🗑️ Reset</button>
+    <div class="btn-group">
+        <button class="btn-check" id="checkBtn" onclick="startCheck()">🔍 RUN CHECK</button>
+        <button class="btn-reset" onclick="location.reload()">🗑️ RESET</button>
     </div>
 
-    <div class="editor-box">
-        <div class="pane input-area">
-            <label>Input Text:</label>
-            <textarea id="inputText" placeholder="Paste your text here...">He have a car. I did went home yesterday. Teh weather is good.</textarea>
-        </div>
-        <div class="pane">
-            <label>Result:</label>
-            <div id="output"></div>
-        </div>
+    <div>
+        <label><strong>Input:</strong></label>
+        <textarea id="inp">He have a car. I did went home tommorow. Teh book is good .</textarea>
+    </div>
+    
+    <div>
+        <label><strong>Result:</strong></label>
+        <div id="out" class="output"></div>
     </div>
 </div>
 
 <script>
-    // รอให้หน้าเว็บโหลดเสร็จก่อนค่อยทำงาน (ป้องกันปุ่มไม่ทำงาน)
-    window.addEventListener('DOMContentLoaded', () => {
+    // --- 1. ฐานข้อมูลกฎ (Rules) ---
+    const rules = [
+        // SPELLING (Red)
+        { pat: /\b(teh)\b/gi, fix: "the", color: "red" },
+        { pat: /\b(recieve)\b/gi, fix: "receive", color: "red" },
+        { pat: /\b(tommorow)\b/gi, fix: "tomorrow", color: "red" },
+        { pat: /\b(untill)\b/gi, fix: "until", color: "red" },
         
-        // 1. อ้างอิง Element
-        const btnCheck = document.getElementById('btnCheck');
-        const btnPrint = document.getElementById('btnPrint');
-        const btnReset = document.getElementById('btnReset');
-        const inputArea = document.getElementById('inputText');
-        const outputArea = document.getElementById('output');
-        const statusBar = document.getElementById('statusBar');
+        // ARTICLES (Orange)
+        { pat: /\b(a)\s+(apple|elephant|ice|orange|umbrella)\b/gi, fix: "an $2", color: "orange" },
+        { pat: /\b(an)\s+(car|book|house|year)\b/gi, fix: "a $2", color: "orange" },
 
-        // 2. ฐานข้อมูลกฎ (Rules Database)
-        // ใช้ array เพื่อวนลูปง่าย และใช้ regex string เพื่อความปลอดภัย
-        const database = [
-            // Spelling (Red)
-            { r: "\\b(teh)\\b", fix: "the", t: "spell" },
-            { r: "\\b(recieve)\\b", fix: "receive", t: "spell" },
-            { r: "\\b(tommorow)\\b", fix: "tomorrow", t: "spell" },
-            { r: "\\b(definately)\\b", fix: "definitely", t: "spell" },
-            { r: "\\b(becuase)\\b", fix: "because", t: "spell" },
-            
-            // Article (Orange)
-            { r: "\\b(a)\\s+(apple|elephant|ice|orange|umbrella|hour)\\b", fix: "an $2", t: "art" },
-            { r: "\\b(an)\\s+(car|book|house|year|dog)\\b", fix: "a $2", t: "art" },
+        // GRAMMAR (Green)
+        { pat: /\b(he|she|it)\s+(have)\b/gi, fix: "has", color: "green" },
+        { pat: /\b(I)\s+(has)\b/gi, fix: "have", color: "green" },
+        { pat: /\b(did|didn't)\s+(went|saw|ate|came)\b/gi, fix: "did + verb1", color: "green" },
+        { pat: /\b(to)\s+(went|goes)\b/gi, fix: "to go", color: "green" },
 
-            // Grammar (Green)
-            { r: "\\b(he|she|it|John|Mary)\\s+(have)\\b", fix: "has", t: "gram" },
-            { r: "\\b(he|she|it)\\s+(don't)\\b", fix: "doesn't", t: "gram" },
-            { r: "\\b(I)\\s+(has)\\b", fix: "have", t: "gram" },
-            { r: "\\b(did|didn't)\\s+(went|saw|ate|came)\\b", fix: "did + verb1", t: "gram" },
-            { r: "\\b(to)\\s+(went|goes|gone)\\b", fix: "to go", t: "gram" },
-            { r: "\\b(will|can|could)\\s+(to)\\b", fix: "remove 'to'", t: "gram" },
+        // PUNCTUATION (Blue)
+        { pat: /\s+([.,?!])/g, fix: "$1", color: "blue" },
+        { pat: /,([^ \n])/g, fix: ", $1", color: "blue" }
+    ];
 
-            // Punctuation (Blue)
-            { r: "\\s+([.,?!])", fix: "$1", t: "punct" },
-            { r: ",([^ \\n])", fix: ", $1", t: "punct" }
-        ];
+    // --- 2. ฟังก์ชันหลัก (ทำงานทันทีเมื่อกดปุ่ม) ---
+    function startCheck() {
+        const btn = document.getElementById('checkBtn');
+        const input = document.getElementById('inp');
+        const output = document.getElementById('out');
+        let text = input.value;
 
-        // 3. ฟังก์ชันหลัก (ทำงานเมื่อกดปุ่ม)
-        btnCheck.addEventListener('click', () => {
-            const text = inputArea.value;
-            
-            // แจ้งสถานะ
-            statusBar.innerText = "Processing...";
-            statusBar.style.color = "#eab308"; // yellow
-
+        // เปลี่ยนข้อความปุ่มให้รู้ว่าทำงานอยู่
+        btn.innerText = "Checking...";
+        
+        setTimeout(() => {
             if (!text.trim()) {
-                outputArea.innerHTML = "<span style='color:#999'>Please enter text...</span>";
-                statusBar.innerText = "No text found!";
-                statusBar.style.color = "red";
+                output.innerHTML = "Please type something...";
+                btn.innerText = "🔍 RUN CHECK";
                 return;
             }
 
-            try {
-                // เริ่มกระบวนการตรวจสอบ
-                const html = processText(text);
-                outputArea.innerHTML = html;
-                
-                statusBar.innerText = "Check Complete!";
-                statusBar.style.color = "green";
-            } catch (error) {
-                console.error(error);
-                statusBar.innerText = "Error: " + error.message;
-                statusBar.style.color = "red";
-            }
-        });
-
-        // 4. ฟังก์ชันประมวลผล (Core Logic)
-        function processText(rawText) {
             let findings = [];
 
-            // วนลูปหากฎทั้งหมด
-            database.forEach(rule => {
-                // สร้าง Regex ใหม่ทุกครั้งเพื่อป้องกันปัญหา lastIndex ค้าง
-                const regex = new RegExp(rule.r, "gi"); 
+            // วนลูปกฎ
+            rules.forEach(r => {
                 let match;
-
-                while ((match = regex.exec(rawText)) !== null) {
-                    // คำนวณ Suggestion (กรณีมี $1, $2)
-                    let suggestion = rawText.substring(match.index, match.index + match[0].length);
-                    suggestion = suggestion.replace(regex, rule.fix);
+                // สร้าง Regex ใหม่ทุกครั้ง
+                let regex = new RegExp(r.pat); 
+                
+                while ((match = regex.exec(text)) !== null) {
+                    let suggestion = r.fix;
+                    // แทนค่า $1, $2 ใน suggestion
+                    if (suggestion.includes("$")) {
+                        suggestion = match[0].replace(regex, r.fix);
+                    }
 
                     findings.push({
                         start: match.index,
                         end: match.index + match[0].length,
                         word: match[0],
                         suggest: suggestion,
-                        type: rule.t
+                        color: r.color
                     });
 
-                    // ป้องกัน Infinite Loop (ถ้าเจอ string ว่างๆ)
-                    if (match.index === regex.lastIndex) {
-                        regex.lastIndex++;
-                    }
+                    // ป้องกันลูปไม่รู้จบ
+                    if (match.index === regex.lastIndex) regex.lastIndex++;
                 }
             });
 
-            // เรียงลำดับตำแหน่งที่ผิดจากน้อยไปมาก
+            // เรียงลำดับจากหน้าไปหลัง
             findings.sort((a, b) => a.start - b.start);
 
-            // ประกอบร่าง HTML
-            let resultHTML = "";
-            let currentIndex = 0;
+            // สร้าง HTML
+            let html = "";
+            let cursor = 0;
 
             findings.forEach(item => {
-                // ถ้าตำแหน่งปัจจุบัน เลยจุดเริ่มต้นของคำผิดนี้ไปแล้ว (แปลว่าซ้อนทับกัน) ให้ข้าม
-                if (currentIndex > item.start) return;
+                if (item.start < cursor) return; // ข้ามคำที่ซ้อนกัน
 
-                // ข้อความปกติก่อนหน้า
-                resultHTML += escapeHtml(rawText.substring(currentIndex, item.start));
+                // ข้อความปกติ
+                html += escapeHtml(text.substring(cursor, item.start));
 
-                // ข้อความ Highlight
-                resultHTML += `<span class="err err-${item.type}" 
-                                data-fix="แก้เป็น: ${item.suggest}" 
-                                data-clean="${item.suggest}">
-                                ${escapeHtml(item.word)}
-                               </span>`;
+                // ข้อความไฮไลต์
+                html += `<span class="err ${item.color}" data-fix="แก้เป็น: ${item.suggest}">${escapeHtml(item.word)}</span>`;
 
-                currentIndex = item.end;
+                cursor = item.end;
             });
 
-            // ข้อความที่เหลือตอนท้าย
-            resultHTML += escapeHtml(rawText.substring(currentIndex));
+            // ข้อความที่เหลือ
+            html += escapeHtml(text.substring(cursor));
+            
+            // แสดงผล
+            output.innerHTML = html;
 
-            return resultHTML;
-        }
+            // คืนค่าปุ่มเดิม
+            btn.innerText = "🔍 RUN CHECK";
+            
+        }, 200); // หน่วงเวลาเล็กน้อยเพื่อให้เห็นปุ่มกระพริบ
+    }
 
-        // ปุ่ม Reset
-        btnReset.addEventListener('click', () => {
-            if(confirm("Clear all?")) {
-                inputArea.value = "";
-                outputArea.innerHTML = "";
-                statusBar.innerText = "Cleared";
-                statusBar.style.color = "#333";
-            }
-        });
-
-        // ปุ่ม Print
-        btnPrint.addEventListener('click', () => {
-            window.print();
-        });
-
-        // Helper Function (ป้องกัน HTML Injection)
-        function escapeHtml(text) {
-            return text
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
-        }
-    });
+    function escapeHtml(text) {
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
 </script>
 
 </body>

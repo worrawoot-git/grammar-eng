@@ -3,96 +3,333 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Safe Grammar Checker (Fixed)</title>
+    <title>Advanced Grammar Checker</title>
     <style>
-        body { font-family: sans-serif; background: #f0f2f5; padding: 20px; }
-        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: #333; margin-top: 0; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container { 
+            max-width: 900px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 40px; 
+            border-radius: 15px; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        
+        h1 { 
+            text-align: center; 
+            color: #2d3748; 
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        label { 
+            display: block;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
 
         textarea { 
-            width: 100%; height: 150px; padding: 15px; 
-            border: 2px solid #ccc; border-radius: 8px; font-size: 16px; 
-            box-sizing: border-box; resize: vertical;
+            width: 100%; 
+            height: 180px; 
+            padding: 15px; 
+            border: 2px solid #e2e8f0; 
+            border-radius: 10px; 
+            font-size: 16px; 
+            resize: vertical;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: border-color 0.3s;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
         }
 
-        .controls { text-align: center; margin: 20px 0; }
+        .controls { 
+            text-align: center; 
+            margin: 25px 0; 
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
         
         button {
-            padding: 12px 30px; font-size: 16px; font-weight: bold; color: white;
-            border: none; border-radius: 5px; cursor: pointer; transition: 0.2s;
+            padding: 14px 35px; 
+            font-size: 16px; 
+            font-weight: 600; 
+            color: white;
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-        #btnCheck { background: #2563eb; }
-        #btnCheck:hover { background: #1d4ed8; }
-        #btnCheck:disabled { background: #94a3b8; cursor: not-allowed; }
-        #btnReset { background: #dc2626; margin-left: 10px; }
+        
+        #btnCheck { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            flex: 1;
+            max-width: 200px;
+        }
+        #btnCheck:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(102, 126, 234, 0.4);
+        }
+        #btnCheck:disabled { 
+            background: #cbd5e0; 
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        #btnReset { 
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            flex: 1;
+            max-width: 200px;
+        }
+        #btnReset:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(245, 87, 108, 0.4);
+        }
 
         #result { 
-            min-height: 150px; padding: 15px; border: 2px solid #e5e7eb; 
-            border-radius: 8px; background: #fff; line-height: 1.8; font-size: 16px;
+            min-height: 180px; 
+            padding: 20px; 
+            border: 2px solid #e2e8f0; 
+            border-radius: 10px; 
+            background: #f7fafc; 
+            line-height: 2; 
+            font-size: 16px;
+            color: #2d3748;
         }
+        
+        .empty-state {
+            color: #a0aec0;
+            text-align: center;
+            font-style: italic;
+            padding: 40px 20px;
+        }
+
+        .status { 
+            margin: 15px 0; 
+            text-align: center; 
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .status.success { color: #38a169; }
+        .status.error { color: #e53e3e; }
+        .status.info { color: #3182ce; }
 
         .err { 
-            border-bottom: 3px solid; cursor: help; position: relative; padding-bottom: 2px;
+            border-bottom: 3px solid; 
+            cursor: help; 
+            position: relative; 
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: 500;
         }
+        
         .err:hover::after {
             content: attr(data-tip);
-            position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%);
-            background: #1f2937; color: #fff; padding: 6px 12px; border-radius: 6px;
-            font-size: 14px; white-space: nowrap; z-index: 10; pointer-events: none;
+            position: absolute; 
+            bottom: 130%; 
+            left: 50%; 
+            transform: translateX(-50%);
+            background: #1a202c; 
+            color: #fff; 
+            padding: 8px 14px; 
+            border-radius: 6px;
+            font-size: 13px; 
+            white-space: nowrap; 
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        .err:hover::before {
+            content: '';
+            position: absolute;
+            bottom: 120%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: #1a202c;
+            z-index: 100;
         }
 
-        .c-red { border-color: #ef4444; background: #fef2f2; color: #b91c1c; }
-        .c-green { border-color: #22c55e; background: #f0fdf4; color: #15803d; }
-        .c-orange { border-color: #f97316; background: #fff7ed; color: #c2410c; }
-        .c-blue { border-color: #3b82f6; background: #eff6ff; color: #1d4ed8; }
+        .c-spelling { 
+            border-color: #e53e3e; 
+            background: #fff5f5; 
+            color: #c53030;
+        }
         
-        .status { margin: 10px 0; text-align: center; color: #666; font-size: 14px; }
+        .c-grammar { 
+            border-color: #38a169; 
+            background: #f0fff4; 
+            color: #276749;
+        }
+        
+        .c-article { 
+            border-color: #ed8936; 
+            background: #fffaf0; 
+            color: #c05621;
+        }
+        
+        .c-tense { 
+            border-color: #9f7aea; 
+            background: #faf5ff; 
+            color: #6b46c1;
+        }
+        
+        .c-punctuation { 
+            border-color: #3182ce; 
+            background: #ebf8ff; 
+            color: #2c5282;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: #edf2f7;
+            border-radius: 8px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 2px solid;
+        }
+        
+        .legend-color.spelling { background: #fff5f5; border-color: #e53e3e; }
+        .legend-color.grammar { background: #f0fff4; border-color: #38a169; }
+        .legend-color.article { background: #fffaf0; border-color: #ed8936; }
+        .legend-color.tense { background: #faf5ff; border-color: #9f7aea; }
+        .legend-color.punctuation { background: #ebf8ff; border-color: #3182ce; }
+
+        @media (max-width: 600px) {
+            .container { padding: 20px; }
+            h1 { font-size: 24px; }
+            .controls { flex-direction: column; }
+            button { max-width: 100%; }
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🛡️ Grammar Checker (แก้ปัญหาค้างแล้ว)</h1>
+    <h1>✍️ Advanced Grammar Checker</h1>
+    <p class="subtitle">ตรวจสอบการสะกด ไวยากรณ์ Tense คำนำหน้านาม และเครื่องหมายวรรคตอน</p>
     
-    <label><strong>Input:</strong></label>
-    <textarea id="inputText" placeholder="Enter text here...">He have a car. I did went to school. Teh weather is good .</textarea>
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-color spelling"></div>
+            <span>Spelling (การสะกด)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color grammar"></div>
+            <span>Grammar (ไวยากรณ์)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color tense"></div>
+            <span>Tense (กาล)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color article"></div>
+            <span>Articles (a/an/the)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color punctuation"></div>
+            <span>Punctuation (วรรคตอน)</span>
+        </div>
+    </div>
+    
+    <label>📝 ข้อความที่ต้องการตรวจสอบ:</label>
+    <textarea id="inputText" placeholder="พิมพ์หรือวางข้อความที่ต้องการตรวจสอบที่นี่..."></textarea>
 
     <div class="controls">
-        <button id="btnCheck" onclick="safeCheck()">🔍 CHECK NOW</button>
-        <button id="btnReset" onclick="location.reload()">🔄 RESET</button>
+        <button id="btnCheck" onclick="checkGrammar()">🔍 ตรวจสอบ</button>
+        <button id="btnReset" onclick="resetForm()">🔄 Reset</button>
     </div>
     
     <div class="status" id="status"></div>
 
-    <label><strong>Result:</strong></label>
-    <div id="result"></div>
+    <label>📋 ผลการตรวจสอบ:</label>
+    <div id="result">
+        <div class="empty-state">กรุณากรอกข้อความด้านบนแล้วกดปุ่ม "ตรวจสอบ"</div>
+    </div>
 </div>
 
 <script>
-    // --- กฎการตรวจสอบ (ปรับปรุงแล้ว) ---
     const rules = [
-        // Spelling (Red) - ใช้ word boundary เพื่อความแม่นยำ
-        { pattern: "\\bteh\\b", flags: "gi", fix: "the", type: "c-red" },
-        { pattern: "\\brecieve\\b", flags: "gi", fix: "receive", type: "c-red" },
-        { pattern: "\\btommorow\\b", flags: "gi", fix: "tomorrow", type: "c-red" },
-        { pattern: "\\buntill\\b", flags: "gi", fix: "until", type: "c-red" },
+        // SPELLING ERRORS
+        { pattern: /\bteh\b/gi, fix: "the", type: "c-spelling", category: "Spelling" },
+        { pattern: /\brecieve\b/gi, fix: "receive", type: "c-spelling", category: "Spelling" },
+        { pattern: /\btommorow\b/gi, fix: "tomorrow", type: "c-spelling", category: "Spelling" },
+        { pattern: /\buntill\b/gi, fix: "until", type: "c-spelling", category: "Spelling" },
+        { pattern: /\boccured\b/gi, fix: "occurred", type: "c-spelling", category: "Spelling" },
+        { pattern: /\bseperate\b/gi, fix: "separate", type: "c-spelling", category: "Spelling" },
+        { pattern: /\bdefinately\b/gi, fix: "definitely", type: "c-spelling", category: "Spelling" },
+        { pattern: /\bneccessary\b/gi, fix: "necessary", type: "c-spelling", category: "Spelling" },
+        { pattern: /\bwierd\b/gi, fix: "weird", type: "c-spelling", category: "Spelling" },
+        { pattern: /\btheir\s+are\b/gi, fix: "there are", type: "c-spelling", category: "Spelling" },
+        { pattern: /\byour\s+going\b/gi, fix: "you're going", type: "c-spelling", category: "Spelling" },
         
-        // Grammar (Green) - จำกัด whitespace เป็น 1-3 ตัว
-        { pattern: "\\b(he|she|it) {1,3}(have)\\b", flags: "gi", fix: "has", type: "c-green" },
-        { pattern: "\\b(I) {1,3}(has)\\b", flags: "gi", fix: "have", type: "c-green" },
-        { pattern: "\\b(did|didn't) {1,3}(went|saw|ate|came)\\b", flags: "gi", fix: "base verb", type: "c-green" },
-        { pattern: "\\b(to) {1,3}(went|goes)\\b", flags: "gi", fix: "to go", type: "c-green" },
-
-        // Articles (Orange)
-        { pattern: "\\b(a) {1,3}(apple|elephant|ice|orange|umbrella)\\b", flags: "gi", fix: "an", type: "c-orange" },
-        { pattern: "\\b(an) {1,3}(car|book|house|dog)\\b", flags: "gi", fix: "a", type: "c-orange" },
-
-        // Punctuation (Blue) - แก้ไขสำคัญ: ไม่ใช้ \\s+ ที่อันตราย
-        { pattern: " {1,5}([.,?!])", flags: "g", fix: "$1", type: "c-blue" },
-        { pattern: ",([a-zA-Z])", flags: "g", fix: ", $1", type: "c-blue" }
+        // GRAMMAR ERRORS
+        { pattern: /\b(he|she|it)\s+(have)\b/gi, fix: "has", type: "c-grammar", category: "Grammar" },
+        { pattern: /\b(he|she|it)\s+(are)\b/gi, fix: "is", type: "c-grammar", category: "Grammar" },
+        { pattern: /\b(I|you|we|they)\s+(has)\b/gi, fix: "have", type: "c-grammar", category: "Grammar" },
+        { pattern: /\b(he|she|it)\s+don't\b/gi, fix: "doesn't", type: "c-grammar", category: "Grammar" },
+        { pattern: /\b(I|you|we|they)\s+doesn't\b/gi, fix: "don't", type: "c-grammar", category: "Grammar" },
+        { pattern: /\bmuch\s+(books|cars|people|things)\b/gi, fix: "many", type: "c-grammar", category: "Grammar" },
+        { pattern: /\bmany\s+(water|money|time|information)\b/gi, fix: "much", type: "c-grammar", category: "Grammar" },
+        
+        // TENSE ERRORS
+        { pattern: /\b(did|didn't)\s+(went|saw|ate|came|took)\b/gi, fix: "base verb", type: "c-tense", category: "Tense" },
+        { pattern: /\bwill\s+(went|saw|ate)\b/gi, fix: "base verb", type: "c-tense", category: "Tense" },
+        { pattern: /\b(has|have)\s+(went|saw|ate)\b/gi, fix: "past participle", type: "c-tense", category: "Tense" },
+        { pattern: /\b(am|is|are)\s+(went|saw|ate)\b/gi, fix: "-ing form", type: "c-tense", category: "Tense" },
+        
+        // ARTICLE ERRORS
+        { pattern: /\ba\s+(apple|orange|elephant|umbrella|hour|honest)\b/gi, fix: "an", type: "c-article", category: "Article" },
+        { pattern: /\ba\s+(egg|ice|opportunity)\b/gi, fix: "an", type: "c-article", category: "Article" },
+        { pattern: /\ban\s+(car|book|house|dog|cat|university)\b/gi, fix: "a", type: "c-article", category: "Article" },
+        { pattern: /\ban\s+(pen|table|computer)\b/gi, fix: "a", type: "c-article", category: "Article" },
+        
+        // PUNCTUATION ERRORS
+        { pattern: /\s{2,}([.,?!])/g, fix: "$1", type: "c-punctuation", category: "Punctuation" },
+        { pattern: /,([a-zA-Z])/g, fix: ", $1", type: "c-punctuation", category: "Punctuation" },
+        { pattern: /\.([A-Z])/g, fix: ". $1", type: "c-punctuation", category: "Punctuation" },
+        { pattern: /\s{2,}/g, fix: " ", type: "c-punctuation", category: "Punctuation" }
     ];
 
-    function safeCheck() {
+    function checkGrammar() {
         const inputEl = document.getElementById('inputText');
         const outputEl = document.getElementById('result');
         const statusEl = document.getElementById('status');
@@ -101,38 +338,39 @@
         const text = inputEl.value.trim();
         
         if (!text) {
-            outputEl.innerHTML = "<i>กรุณากรอกข้อความ</i>";
+            outputEl.innerHTML = '<div class="empty-state">⚠️ กรุณากรอกข้อความที่ต้องการตรวจสอบ</div>';
+            statusEl.innerHTML = '';
             return;
         }
 
-        // ป้องกันการกดซ้ำ
         btn.disabled = true;
         btn.innerText = "⏳ กำลังตรวจสอบ...";
-        statusEl.innerText = "กำลังวิเคราะห์...";
+        statusEl.innerHTML = '<span class="info">🔄 กำลังวิเคราะห์ข้อความ...</span>';
         outputEl.innerHTML = "";
 
-        // ให้เวลา UI อัปเดต
-        setTimeout(() => {
+        setTimeout(function() {
             try {
                 let findings = [];
-                let processedRules = 0;
+                let errorCount = {
+                    spelling: 0,
+                    grammar: 0,
+                    tense: 0,
+                    article: 0,
+                    punctuation: 0
+                };
 
-                // ตรวจสอบแต่ละกฎ
-                rules.forEach((rule, index) => {
+                rules.forEach(function(rule) {
                     try {
-                        const regex = new RegExp(rule.pattern, rule.flags);
+                        let match;
+                        const regex = new RegExp(rule.pattern.source, rule.pattern.flags);
                         
-                        // ใช้ matchAll (ปลอดภัยกว่า while loop)
-                        const matches = [...text.matchAll(regex)];
-                        
-                        matches.forEach(match => {
+                        while ((match = regex.exec(text)) !== null) {
                             const offset = match.index;
                             const matchedText = match[0];
                             
-                            // คำนวณคำแนะนำ
                             let suggestion = rule.fix;
-                            if (suggestion.includes("$1")) {
-                                suggestion = matchedText.replace(regex, rule.fix);
+                            if (suggestion.indexOf("$1") !== -1 && match[1]) {
+                                suggestion = suggestion.replace("$1", match[1]);
                             }
 
                             findings.push({
@@ -140,66 +378,78 @@
                                 end: offset + matchedText.length,
                                 word: matchedText,
                                 tip: suggestion,
-                                type: rule.type
+                                type: rule.type,
+                                category: rule.category
                             });
-                        });
-                        
-                        processedRules++;
+                            
+                            if (rule.type.indexOf('spelling') !== -1) errorCount.spelling++;
+                            else if (rule.type.indexOf('grammar') !== -1) errorCount.grammar++;
+                            else if (rule.type.indexOf('tense') !== -1) errorCount.tense++;
+                            else if (rule.type.indexOf('article') !== -1) errorCount.article++;
+                            else if (rule.type.indexOf('punctuation') !== -1) errorCount.punctuation++;
+                        }
                         
                     } catch (err) {
-                        console.error(`กฎที่ ${index + 1} ผิดพลาด:`, err);
+                        console.error('Rule error:', err);
                     }
                 });
 
-                // เรียงตามตำแหน่ง และกำจัดที่ทับซ้อน
-                findings.sort((a, b) => a.start - b.start);
+                findings.sort(function(a, b) { return a.start - b.start; });
                 
-                // กำจัด overlap
                 const cleanFindings = [];
                 let lastEnd = 0;
-                findings.forEach(item => {
+                findings.forEach(function(item) {
                     if (item.start >= lastEnd) {
                         cleanFindings.push(item);
                         lastEnd = item.end;
                     }
                 });
 
-                // สร้าง HTML
                 let html = "";
                 let cursor = 0;
 
-                cleanFindings.forEach(item => {
-                    // ข้อความปกติ
+                cleanFindings.forEach(function(item) {
                     html += escapeHtml(text.substring(cursor, item.start));
-                    
-                    // ข้อความผิด
-                    html += `<span class="err ${item.type}" data-tip="แนะนำ: ${escapeHtml(item.tip)}">
-                                ${escapeHtml(item.word)}
-                             </span>`;
-                    
+                    html += '<span class="err ' + item.type + '" data-tip="' + item.category + ': ' + escapeHtml(item.tip) + '">' + escapeHtml(item.word) + '</span>';
                     cursor = item.end;
                 });
 
-                // ข้อความที่เหลือ
                 html += escapeHtml(text.substring(cursor));
 
-                // แสดงผล
-                outputEl.innerHTML = html || escapeHtml(text);
-                statusEl.innerHTML = cleanFindings.length > 0 
-                    ? `✅ พบข้อผิดพลาด <strong>${cleanFindings.length}</strong> จุด`
-                    : `✅ ไม่พบข้อผิดพลาด`;
+                if (cleanFindings.length > 0) {
+                    outputEl.innerHTML = html;
+                    
+                    let statusMsg = '<span class="success">✅ ตรวจสอบเสร็จสิ้น พบข้อผิดพลาด ' + cleanFindings.length + ' จุด</span><br><small>';
+                    if (errorCount.spelling > 0) statusMsg += 'การสะกด: ' + errorCount.spelling + ' ';
+                    if (errorCount.grammar > 0) statusMsg += 'ไวยากรณ์: ' + errorCount.grammar + ' ';
+                    if (errorCount.tense > 0) statusMsg += 'Tense: ' + errorCount.tense + ' ';
+                    if (errorCount.article > 0) statusMsg += 'คำนำหน้า: ' + errorCount.article + ' ';
+                    if (errorCount.punctuation > 0) statusMsg += 'วรรคตอน: ' + errorCount.punctuation;
+                    statusMsg += '</small>';
+                    
+                    statusEl.innerHTML = statusMsg;
+                } else {
+                    outputEl.innerHTML = escapeHtml(text);
+                    statusEl.innerHTML = '<span class="success">✅ ยอดเยี่ยม! ไม่พบข้อผิดพลาด</span>';
+                }
 
             } catch (error) {
                 console.error("เกิดข้อผิดพลาด:", error);
-                outputEl.innerHTML = `<span style="color: red;">เกิดข้อผิดพลาด: ${error.message}</span>`;
-                statusEl.innerHTML = "❌ เกิดข้อผิดพลาด";
+                outputEl.innerHTML = '<div class="empty-state" style="color: #e53e3e;">❌ เกิดข้อผิดพลาด: ' + error.message + '</div>';
+                statusEl.innerHTML = '<span class="error">❌ ไม่สามารถตรวจสอบได้</span>';
             } finally {
-                // คืนค่าปุ่ม
                 btn.disabled = false;
-                btn.innerText = "🔍 CHECK NOW";
+                btn.innerText = "🔍 ตรวจสอบ";
             }
 
-        }, 100); // เพิ่มเวลารอเป็น 100ms
+        }, 100);
+    }
+
+    function resetForm() {
+        document.getElementById('inputText').value = '';
+        document.getElementById('result').innerHTML = '<div class="empty-state">กรุณากรอกข้อความด้านบนแล้วกดปุ่ม "ตรวจสอบ"</div>';
+        document.getElementById('status').innerHTML = '';
+        document.getElementById('inputText').focus();
     }
 
     function escapeHtml(text) {
@@ -208,9 +458,14 @@
         return div.innerHTML;
     }
 
-    // ตรวจสอบอัตโนมัติเมื่อโหลดหน้า
-    window.addEventListener('load', () => {
-        safeCheck();
+    window.addEventListener('load', function() {
+        document.getElementById('inputText').focus();
+    });
+    
+    document.getElementById('inputText').addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.key === 'Enter') {
+            checkGrammar();
+        }
     });
 </script>
 
